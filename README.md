@@ -1,57 +1,35 @@
-# ORKIO v2 Premium Backend — Functional Pre-OIDC Candidate
+# ORKIO v2 Premium Frontend — Functional Pre-OIDC Candidate
 
-Secure modular monolith for the Plataforma Efatà 777 functional vertical slice.
+This repository contains the complete frontend source for the Plataforma Efatà
+777 functional vertical slice.
 
 Implemented:
 
-- strict liveness and readiness separation;
-- PostgreSQL URL normalization for Psycopg 3;
-- Alembic runtime files included in the image;
-- tenant-scoped thread creation, listing and history;
-- provisioned-principal enforcement;
-- owner/moderator invitation authorization;
-- governed attachment upload;
-- canonical ORKIO authorship in JSON, SSE and persistence;
-- OpenAI-compatible LLM integration with configurable API base;
-- terminal SSE contract: `status`, `chunk`, optional `error`, always `done`;
-- OIDC introspection with active, issuer, audience, user and tenant checks;
-- preview-first identity bootstrap script.
+- thread creation, listing and selection;
+- message history;
+- POST-based SSE client with `status`, `chunk`, `error` and terminal `done`;
+- attachment upload through `FormData`;
+- invitation creation and `/invite/:token`;
+- controlled PWA update and protected cache boundaries;
+- Authorization Code + PKCE client;
+- `/auth/callback`, session expiry, logout and 401 cleanup;
+- fail-closed UI while OIDC or API configuration is absent.
 
-## Local validation
+The SPA never contains a client secret. OIDC provider values are supplied only
+through `VITE_OIDC_*` variables at build time.
 
-```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -e '.[test]'
-pytest
+Current gate:
+
+```text
+SOURCE_TESTS=80_PASS
+LOCKFILE_VERIFY=PASS
+TYPESCRIPT_SYNTAX=PASS
+NPM_CI=NOT_EXECUTED_LOCAL_REGISTRY_BLOCKER
+VITE_BUILD=NOT_EXECUTED_LOCAL_REGISTRY_BLOCKER
+OIDC_PROVIDER=NOT_CONFIGURED
+DEPLOY_EXECUTED=false
 ```
 
-## Migrations
-
-The Docker image contains `alembic.ini` and `migrations/`. Use a controlled
-Railway pre-deploy command:
-
-```bash
-alembic upgrade head
-```
-
-Do not run migrations against SQLite in production.
-
-## Identity bootstrap
-
-Preview is the default:
-
-```bash
-python scripts/bootstrap_identity.py \
-  --tenant-id '<tenant_id claim>' \
-  --tenant-name 'Efatà 777' \
-  --user-id '<sub claim>' \
-  --external-subject '<sub claim>' \
-  --email 'owner@example.com' \
-  --display-name 'Owner'
-```
-
-Writing requires both `--apply` and `--confirm APPLY_BOOTSTRAP`.
-
-Production must remain `external_required` until the OIDC provider and SPA
-client are fully configured and tested.
+Use Git or GitHub Desktop. Do not upload this repository by dragging files into
+the GitHub web interface because dotfiles such as `.npmrc` and `.github/` may be
+omitted.
