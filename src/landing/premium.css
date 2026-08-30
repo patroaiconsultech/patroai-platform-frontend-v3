@@ -8207,3 +8207,651 @@ body.v37-immersive-open {
   }
 }
 
+
+
+/* ==========================================================================
+   V3.8 — MOBILE-FIRST AURORA GATE
+   Mobile is the authority layout. Desktop progressively enhances it.
+   The existing V3.7.1 block remains below as rollback-friendly baseline;
+   these selectors intentionally override only the immersive surface.
+   ========================================================================== */
+
+.v38-immersive {
+  --v38-low: var(--music-low, 0);
+  --v38-mid: var(--music-mid, 0);
+  --v38-high: var(--music-high, 0);
+  --v38-beat: var(--music-beat, 0);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(8,56,57,.30), transparent 48vh),
+    linear-gradient(160deg, #010608 0%, #021113 54%, #050719 100%);
+}
+
+/* Gate is intentionally mobile-first: one clear decision, thumb-sized actions,
+   safe-area aware spacing, no hover dependency. */
+.v38-entry {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding:
+    max(28px, env(safe-area-inset-top))
+    20px
+    max(28px, env(safe-area-inset-bottom));
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(30,116,104,.18), transparent 31vh),
+    radial-gradient(circle at 50% 44%, rgba(246,196,83,.09), transparent 46vh),
+    rgba(1,6,8,.52);
+  backdrop-filter: blur(7px);
+  animation: v38GateIn 600ms cubic-bezier(.22,1,.36,1) both;
+}
+
+.v38-entry__halo {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: min(78vw, 320px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(246,196,83,.17), rgba(55,197,255,.08) 30%, transparent 68%);
+  filter: blur(24px);
+  opacity: calc(.62 + var(--v38-low) * .32);
+  animation: v38HaloBreath 5.4s ease-in-out infinite;
+}
+
+.v38-entry__mark {
+  position: relative;
+  z-index: 1;
+  width: clamp(74px, 23vw, 112px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 28px rgba(246,196,83,.23));
+}
+
+.v38-entry__eyebrow {
+  position: relative;
+  z-index: 1;
+  margin: 22px 0 12px;
+  color: var(--v37-gold);
+  font: 700 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .19em;
+}
+
+.v38-entry h1 {
+  position: relative;
+  z-index: 1;
+  max-width: 15ch;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 10vw, 52px);
+  line-height: .98;
+  letter-spacing: -.045em;
+}
+
+.v38-entry__copy {
+  position: relative;
+  z-index: 1;
+  max-width: 33rem;
+  margin: 16px auto 0;
+  color: rgba(236,244,241,.72);
+  font-size: clamp(13px, 3.8vw, 16px);
+  line-height: 1.6;
+}
+
+.v38-entry__actions {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  width: min(100%, 420px);
+  margin-top: 25px;
+}
+
+.v38-entry__actions button {
+  min-height: 54px;
+  border-radius: 15px;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.v38-entry__sound {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  border: 1px solid rgba(246,196,83,.72);
+  color: #fff;
+  background:
+    linear-gradient(115deg, rgba(246,196,83,.20), rgba(55,197,255,.09));
+  box-shadow: 0 14px 38px rgba(0,0,0,.24), 0 0 28px rgba(246,196,83,.06);
+}
+
+.v38-entry__sound span {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border: 1px solid rgba(246,196,83,.44);
+  border-radius: 50%;
+  color: var(--v37-gold);
+}
+
+.v38-entry__silent {
+  border: 1px solid rgba(255,255,255,.17);
+  color: rgba(245,248,247,.88);
+  background: rgba(2,12,17,.54);
+}
+
+.v38-entry small {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  color: rgba(230,239,236,.45);
+  font-size: 10px;
+}
+
+/* Aurora: three lightweight blurred ribbons. Music variables come from the
+   existing audio analyser, so no second MediaElementSource is created. */
+.v38-aurora {
+  position: absolute;
+  inset: -18%;
+  z-index: -3;
+  overflow: hidden;
+  pointer-events: none;
+  filter: saturate(calc(1.05 + var(--v38-mid) * .28));
+}
+
+.v38-aurora__band {
+  position: absolute;
+  left: -18%;
+  width: 138%;
+  height: 28%;
+  border-radius: 50%;
+  opacity: .34;
+  filter: blur(28px);
+  transform-origin: 50% 50%;
+  mix-blend-mode: screen;
+  will-change: transform, opacity, filter;
+}
+
+.v38-aurora__band--gold {
+  top: 18%;
+  background:
+    linear-gradient(90deg,
+      transparent 3%,
+      rgba(246,196,83,.04) 18%,
+      rgba(246,196,83,.23) 48%,
+      rgba(69,225,180,.11) 70%,
+      transparent 96%);
+  opacity: calc(.22 + var(--v38-low) * .42 + var(--v38-beat) * .18);
+  animation: v38AuroraGold 15s ease-in-out infinite alternate;
+}
+
+.v38-aurora__band--cyan {
+  top: 39%;
+  background:
+    linear-gradient(94deg,
+      transparent 2%,
+      rgba(55,197,255,.04) 17%,
+      rgba(55,197,255,.26) 48%,
+      rgba(69,225,180,.16) 67%,
+      transparent 97%);
+  opacity: calc(.24 + var(--v38-mid) * .48);
+  animation: v38AuroraCyan 18s ease-in-out infinite alternate;
+}
+
+.v38-aurora__band--violet {
+  top: 60%;
+  background:
+    linear-gradient(88deg,
+      transparent 3%,
+      rgba(125,107,255,.04) 21%,
+      rgba(125,107,255,.18) 49%,
+      rgba(55,197,255,.11) 71%,
+      transparent 95%);
+  opacity: calc(.17 + var(--v38-high) * .38);
+  animation: v38AuroraViolet 20s ease-in-out infinite alternate;
+}
+
+/* Stars now twinkle as well as drift. The audio analyser modulates opacity,
+   while motion remains deliberately subtle to avoid a "music visualizer" look. */
+.v38-immersive .v37-stars--base {
+  opacity: calc(.24 + var(--v38-high) * .12);
+  animation:
+    v371StarsBase 54s linear infinite,
+    v38TwinkleSoft 5.8s ease-in-out infinite alternate;
+}
+
+.v38-immersive .v37-stars--low {
+  opacity: calc(.32 + var(--v38-low) * .46 + var(--v38-beat) * .10);
+  animation:
+    v371StarsLow 38s linear infinite,
+    v38TwinkleGold 3.7s ease-in-out infinite alternate;
+}
+
+.v38-immersive .v37-stars--mid {
+  opacity: calc(.27 + var(--v38-mid) * .48);
+  animation:
+    v371StarsMid 31s linear infinite,
+    v38TwinkleMid 4.4s ease-in-out infinite alternate;
+}
+
+.v38-immersive .v37-stars--high {
+  opacity: calc(.20 + var(--v38-high) * .50 + var(--v38-beat) * .09);
+  animation:
+    v371StarsHigh 26s linear infinite,
+    v38TwinkleHigh 2.9s ease-in-out infinite alternate;
+}
+
+/* Remove the explanatory copy completely in V3.8. */
+.v38-immersive .v37-lobby__copy {
+  display: none !important;
+}
+
+/* Mobile authority layout. */
+.v38-immersive .v37-lobby {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  align-content: stretch;
+  min-height: 100dvh;
+  gap: 11px;
+  padding:
+    calc(64px + env(safe-area-inset-top))
+    14px
+    calc(18px + env(safe-area-inset-bottom));
+  opacity: 1;
+  transform: translateZ(0);
+  transition: opacity 480ms ease, transform 620ms cubic-bezier(.22,1,.36,1);
+}
+
+/* Intro keeps the lobby rendered behind it, but inert and visually softened.
+   The actual cinematic world is already present before consent, preventing a
+   visual "load" after the user taps. */
+.v37-immersive--intro .v37-lobby {
+  pointer-events: none;
+  opacity: .34;
+  filter: blur(5px) saturate(.82);
+  transform: scale(1.035);
+}
+
+.v38-immersive .v37-lobby__header {
+  top: calc(14px + env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  font-size: 9px;
+}
+
+.v38-immersive .v37-lobby__header span {
+  display: inline;
+  max-width: 52vw;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.v38-immersive .v37-lobby__header button {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 11px;
+}
+
+/* The video is now an atmospheric field. On mobile it intentionally exceeds
+   viewport width and dissolves at all edges, eliminating the "media card" read. */
+.v38-immersive .v37-core {
+  --core-x: 0px;
+  --core-y: 0px;
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 3;
+  grid-row: 2;
+  align-self: center;
+  justify-self: center;
+  width: max(128vw, 74dvh);
+  max-width: none;
+  aspect-ratio: 16 / 9;
+  transform:
+    translate3d(var(--core-x), var(--core-y), 0)
+    scale(calc(1 + var(--v38-beat) * .018));
+  opacity: calc(.90 + var(--v38-mid) * .08);
+  pointer-events: none;
+}
+
+.v38-immersive .v37-core__glow {
+  inset: -34%;
+  background:
+    radial-gradient(ellipse at center,
+      rgba(246,196,83,calc(.17 + var(--v38-low) * .17)) 0 9%,
+      rgba(55,197,255,calc(.11 + var(--v38-mid) * .16)) 23%,
+      rgba(69,225,180,.08) 41%,
+      rgba(125,107,255,.045) 55%,
+      transparent 75%);
+  filter: blur(calc(22px + var(--v38-beat) * 9px));
+}
+
+.v38-immersive .v37-core video {
+  object-fit: cover;
+  opacity: .96;
+  mix-blend-mode: screen;
+  transform: translateZ(0) scale(calc(1.08 + var(--v38-beat) * .018));
+  filter:
+    saturate(calc(1.06 + var(--v38-mid) * .22))
+    contrast(1.055)
+    brightness(calc(.93 + var(--v38-low) * .10))
+    drop-shadow(0 0 25px rgba(246,196,83,.16));
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    #000 0 24%,
+    rgba(0,0,0,.98) 38%,
+    rgba(0,0,0,.80) 52%,
+    rgba(0,0,0,.48) 63%,
+    rgba(0,0,0,.16) 74%,
+    transparent 88%
+  );
+  mask-image: radial-gradient(
+    ellipse at center,
+    #000 0 24%,
+    rgba(0,0,0,.98) 38%,
+    rgba(0,0,0,.80) 52%,
+    rgba(0,0,0,.48) 63%,
+    rgba(0,0,0,.16) 74%,
+    transparent 88%
+  );
+}
+
+/* Navigation becomes a thumb-friendly 2x3 matrix on mobile. */
+.v38-immersive .v37-lobby__nodes {
+  position: relative;
+  inset: auto;
+  z-index: 8;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px;
+  width: min(100%, 470px);
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.v38-immersive .v37-node,
+.v38-immersive .v37-node--1,
+.v38-immersive .v37-node--2,
+.v38-immersive .v37-node--3,
+.v38-immersive .v37-node--4,
+.v38-immersive .v37-node--5,
+.v38-immersive .v37-node--6 {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 8px;
+  font-size: 11.5px;
+  backdrop-filter: blur(14px);
+  background: rgba(2,11,17,.48);
+}
+
+.v38-immersive .v37-access {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  z-index: 9;
+  grid-row: 4;
+  justify-self: center;
+  min-height: 46px;
+  margin: 2px 0 0;
+  padding: 11px 24px;
+  transform: none;
+}
+
+.v38-immersive .v37-access:hover,
+.v38-immersive .v37-access:focus-visible {
+  transform: translateY(-2px);
+}
+
+.v38-immersive .v37-dock {
+  right: 10px;
+  bottom: calc(9px + env(safe-area-inset-bottom));
+}
+
+.v38-immersive .v37-dock span {
+  display: none;
+}
+
+/* Mobile exit: the field expands through the viewport while controls dissolve. */
+.v38-immersive.v37-immersive--exiting .v37-core {
+  transform:
+    translate3d(var(--core-x), calc(var(--core-y) - 2.5dvh), 0)
+    scale(1.15);
+  opacity: .24;
+  filter: blur(1px) saturate(.86);
+}
+
+.v38-immersive.v37-immersive--exiting .v38-aurora {
+  transform: scale(1.08) translateY(-2%);
+  opacity: .46;
+}
+
+.v38-immersive.v37-immersive--exiting .v37-lobby__nodes,
+.v38-immersive.v37-immersive--exiting .v37-access,
+.v38-immersive.v37-immersive--exiting .v37-lobby__header,
+.v38-immersive.v37-immersive--exiting .v37-dock {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Compact phones: preserve a full hero field but keep every interactive target
+   reachable without horizontal overflow. */
+@media (max-width: 390px) {
+  .v38-entry {
+    justify-content: center;
+    padding-inline: 16px;
+  }
+
+  .v38-entry__mark {
+    width: 78px;
+  }
+
+  .v38-entry h1 {
+    font-size: clamp(31px, 9.6vw, 40px);
+  }
+
+  .v38-entry__copy {
+    font-size: 13px;
+  }
+
+  .v38-immersive .v37-lobby {
+    padding-inline: 10px;
+    gap: 7px;
+  }
+
+  .v38-immersive .v37-core {
+    width: max(146vw, 70dvh);
+  }
+
+  .v38-immersive .v37-node {
+    min-height: 42px;
+    padding: 8px 6px;
+    font-size: 10.5px;
+  }
+
+  .v38-immersive .v37-node em {
+    padding-right: 5px;
+    font-size: 8px;
+  }
+
+  .v38-immersive .v37-access {
+    min-height: 44px;
+  }
+}
+
+/* Desktop progressively enhances the mobile composition rather than replacing it. */
+@media (min-width: 721px) {
+  .v38-entry__actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .v38-entry {
+    padding-inline: 32px;
+  }
+
+  .v38-entry__mark {
+    width: 96px;
+  }
+
+  .v38-immersive .v37-lobby {
+    display: block;
+    padding:
+      calc(24px + env(safe-area-inset-top))
+      clamp(22px,4vw,58px)
+      calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .v38-immersive .v37-core {
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    width: min(82vw, 980px);
+    aspect-ratio: 16 / 9;
+    transform:
+      translate3d(calc(-50% + var(--core-x)), calc(-50% + var(--core-y)), 0)
+      scale(calc(1 + var(--v38-beat) * .018));
+  }
+
+  .v38-immersive .v37-lobby__nodes {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: auto;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .v38-immersive .v37-node {
+    position: absolute;
+    width: auto;
+    min-width: 154px;
+    min-height: 46px;
+    pointer-events: auto;
+  }
+
+  .v38-immersive .v37-node--1 { left: 8%; top: 25%; }
+  .v38-immersive .v37-node--2 { left: 9.5%; top: 50%; }
+  .v38-immersive .v37-node--3 { left: 16%; bottom: 15%; }
+  .v38-immersive .v37-node--4 { right: 16%; bottom: 15%; }
+  .v38-immersive .v37-node--5 { right: 9.5%; top: 50%; }
+  .v38-immersive .v37-node--6 { right: 8%; top: 25%; }
+
+  .v38-immersive .v37-access {
+    position: absolute;
+    left: 50%;
+    bottom: calc(26px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+  }
+
+  .v38-immersive .v37-access:hover,
+  .v38-immersive .v37-access:focus-visible {
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  .v38-immersive .v37-dock {
+    right: clamp(22px,4vw,58px);
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .v38-immersive .v37-dock span {
+    display: inline;
+  }
+
+  .v38-immersive.v37-immersive--exiting .v37-core {
+    transform:
+      translate3d(calc(-50% + var(--core-x)), calc(-54% + var(--core-y)), 0)
+      scale(1.18);
+  }
+}
+
+@media (min-width: 1200px) {
+  .v38-immersive .v37-core {
+    width: min(76vw, 1120px);
+  }
+
+  .v38-aurora__band {
+    filter: blur(42px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v38-entry,
+  .v38-entry__halo,
+  .v38-aurora__band,
+  .v38-immersive .v37-stars {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .v38-immersive .v37-core {
+    transform: none;
+  }
+
+  @media (min-width: 721px) {
+    .v38-immersive .v37-core {
+      transform: translate3d(-50%, -50%, 0);
+    }
+  }
+}
+
+@keyframes v38GateIn {
+  from { opacity: 0; transform: scale(1.018); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes v38HaloBreath {
+  0%,100% { transform: translate(-50%,-50%) scale(.94); opacity: .58; }
+  50% { transform: translate(-50%,-50%) scale(1.06); opacity: .90; }
+}
+
+@keyframes v38AuroraGold {
+  0% { transform: translate3d(-5%,-3%,0) rotate(-8deg) scaleX(.92); }
+  100% { transform: translate3d(7%,5%,0) rotate(5deg) scaleX(1.08); }
+}
+
+@keyframes v38AuroraCyan {
+  0% { transform: translate3d(5%,2%,0) rotate(6deg) scaleX(1.04); }
+  100% { transform: translate3d(-7%,-5%,0) rotate(-5deg) scaleX(.94); }
+}
+
+@keyframes v38AuroraViolet {
+  0% { transform: translate3d(-4%,4%,0) rotate(-3deg) scaleX(.98); }
+  100% { transform: translate3d(6%,-4%,0) rotate(4deg) scaleX(1.06); }
+}
+
+@keyframes v38TwinkleSoft {
+  from { filter: brightness(.92); }
+  to { filter: brightness(1.11); }
+}
+
+@keyframes v38TwinkleGold {
+  from { filter: brightness(.90) drop-shadow(0 0 1px rgba(246,196,83,.08)); }
+  to { filter: brightness(1.20) drop-shadow(0 0 4px rgba(246,196,83,.18)); }
+}
+
+@keyframes v38TwinkleMid {
+  from { filter: brightness(.91); }
+  to { filter: brightness(1.18) drop-shadow(0 0 3px rgba(55,197,255,.16)); }
+}
+
+@keyframes v38TwinkleHigh {
+  from { filter: brightness(.88); }
+  to { filter: brightness(1.24) drop-shadow(0 0 4px rgba(255,255,255,.13)); }
+}

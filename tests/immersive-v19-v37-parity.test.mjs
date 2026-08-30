@@ -6,9 +6,11 @@ const component = readFileSync(new URL("../src/landing/V37Immersive.tsx", import
 const css = readFileSync(new URL("../src/landing/premium.css", import.meta.url), "utf8");
 const landing = readFileSync(new URL("../src/routes/Landing.tsx", import.meta.url), "utf8");
 
-test("V3.7 opens directly on the animated lobby with public anchors and private access", () => {
+test("V3.8 gates the animated lobby before public anchors and private access", () => {
   for (const marker of ["#cocriacao", "#governanca", "#ecossistema", "#metodo", "#contato", "Acessar Plataforma", "patroai-v37-logo-loop.mp4"]) assert.match(component, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.doesNotMatch(component, /Entre pelo núcleo\.|Entrar com som|Entrar sem som/);
+  assert.match(component, /Esta é uma página imersiva\./);
+  assert.match(component, /Entrar com som/);
+  assert.match(component, /Entrar sem som/);
   assert.match(component, /autoPlay/);
   assert.match(component, /muted/);
   assert.match(component, /loop/);
@@ -17,9 +19,11 @@ test("V3.7 opens directly on the animated lobby with public anchors and private 
   assert.match(landing, /immersiveExperience: false/);
 });
 
-test("V3.7 reuses the first-party audio element without forcing playback at entry", () => {
+test("V3.8 reuses the first-party audio pipeline only after explicit user consent", () => {
+  assert.match(component, /const enterImmersive = async \(withSound: boolean\)/);
+  assert.match(component, /immersiveSoundEntry/);
+  assert.match(component, /data-immersive-silent/);
   assert.match(component, /const toggleAudio/);
-  assert.doesNotMatch(component, /audio\(\)\?\.play\(\)/);
 });
 
 test("V3.7 implementation protects mobile framing and reduced motion without embedded media", () => {
@@ -45,8 +49,8 @@ test("V3.7.1 is starfield-only and removes the decorative orbital geometry", () 
   }
 });
 
-test("V3.7.1 keeps the video mounted through a governed exit transition", () => {
-  assert.match(component, /type Stage = "lobby" \| "exiting" \| "content"/);
+test("V3.8 keeps the video mounted through a governed exit transition", () => {
+  assert.match(component, /type Stage = "intro" \| "lobby" \| "exiting" \| "content"/);
   assert.match(component, /EXIT_DURATION_MS = 820/);
   assert.match(component, /setStage\("exiting"\)/);
   assert.match(component, /finishContentExit/);
@@ -69,4 +73,43 @@ test("V3.7.1 keeps private access, reduced-motion and compact mobile layout inta
   assert.match(css, /@media \(max-width: 720px\)/);
   assert.match(css, /grid-template-columns: repeat\(2, minmax\(0,1fr\)\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+
+test("V3.8 starts with an explicit immersive audio consent gate", () => {
+  assert.match(component, /type Stage = "intro" \| "lobby" \| "exiting" \| "content"/);
+  assert.match(component, /useState<Stage>\("intro"\)/);
+  assert.match(component, /Esta é uma página imersiva\./);
+  assert.match(component, /Entrar com som/);
+  assert.match(component, /Entrar sem som/);
+});
+
+test("V3.8 removes the explanatory 'Escolha por onde' copy from the component", () => {
+  assert.doesNotMatch(component, /Escolha por onde deseja entrar/);
+  assert.doesNotMatch(component, /O núcleo permanece vivo enquanto você navega/);
+});
+
+test("V3.8 uses aurora bands and the existing music-reactive CSS variables", () => {
+  assert.match(component, /v38-aurora__band--gold/);
+  assert.match(component, /v38-aurora__band--cyan/);
+  assert.match(component, /v38-aurora__band--violet/);
+  assert.match(css, /--v38-low:\s*var\(--music-low,\s*0\)/);
+  assert.match(css, /--v38-mid:\s*var\(--music-mid,\s*0\)/);
+  assert.match(css, /--v38-high:\s*var\(--music-high,\s*0\)/);
+  assert.match(css, /--v38-beat:\s*var\(--music-beat,\s*0\)/);
+});
+
+test("V3.8 mobile is the authority layout with thumb-sized 2x3 navigation", () => {
+  const mobileAuthority = css.slice(css.indexOf("/* Mobile authority layout. */"));
+  assert.match(mobileAuthority, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,1fr\)\)/);
+  assert.match(mobileAuthority, /min-height:\s*44px/);
+  assert.match(mobileAuthority, /width:\s*max\(128vw,\s*74dvh\)/);
+  assert.match(css, /@media \(max-width:\s*390px\)/);
+  assert.match(css, /@media \(min-width:\s*721px\)/);
+});
+
+test("V3.8 keeps private access contract and external media", () => {
+  assert.match(component, /onPrivateAccess/);
+  assert.match(component, /\/media\/patroai-v37-logo-loop\.mp4/);
+  assert.doesNotMatch(component, /data:video\//);
 });
