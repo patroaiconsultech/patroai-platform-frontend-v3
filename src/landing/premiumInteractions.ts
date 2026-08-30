@@ -3,6 +3,7 @@ import { apiForm } from "../api";
 
 type PremiumLandingOptions = {
   root: HTMLElement;
+  immersiveExperience?: boolean;
   onPrivateAccess: () => void | Promise<void>;
   onPwaSlot?: (slot: HTMLElement | null) => void;
 };
@@ -177,6 +178,7 @@ export function mountPremiumLanding({
   root,
   onPrivateAccess,
   onPwaSlot,
+  immersiveExperience,
 }: PremiumLandingOptions): () => void {
   const cleanups: Array<() => void> = [];
   const timers = new Set<number>();
@@ -1180,7 +1182,7 @@ export function mountPremiumLanding({
 
   applyLanguage(currentLang);
 
-  if (immersiveGate) {
+  if (immersiveGate && immersiveExperience !== false) {
     immersiveGate.hidden = false;
     immersiveGate.classList.remove("is-leaving");
     neuralLobby?.classList.remove("is-active", "is-exiting", "is-transitioning");

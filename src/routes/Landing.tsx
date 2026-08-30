@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import PwaInstallButton from "../components/PwaInstallButton";
+import { V37Immersive } from "../landing/V37Immersive";
 import { premiumMarkup } from "../landing/premiumMarkup";
 import { mountPremiumLanding } from "../landing/premiumInteractions";
 import "../landing/premium.css";
@@ -19,6 +20,7 @@ export default function Landing() {
     try {
       const cleanup = mountPremiumLanding({
         root,
+        immersiveExperience: false,
         onPwaSlot: setPwaSlot,
         onPrivateAccess: async () => {
           navigate("/access");
@@ -37,6 +39,7 @@ export default function Landing() {
 
   return (
     <>
+      <V37Immersive onPrivateAccess={() => navigate("/access")} />
       <div
         ref={rootRef}
         className="patroai-premium"
