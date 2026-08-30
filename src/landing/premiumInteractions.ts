@@ -1374,10 +1374,11 @@ export function mountPremiumLanding({
     let audioReactiveReady = false;
     let desktopNeuralMotionFrame = 0;
     const audioPlaylist = [
+      "/media/patroai-v37-landing-111hz.mp3",
+      "/media/patroai-immersive-111hz.mp3",
       "/media/patroai-threshold.mp3",
       "/media/patroai-threshold-02.mp3",
       "/media/landingpage111hz-remix.mp3",
-      "/media/patroai-immersive-111hz.mp3",
     ];
     let audioTrackIndex = 0;
 

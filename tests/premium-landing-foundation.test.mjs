@@ -168,10 +168,11 @@ test("language switcher persists locale and updates accessible state", () => {
   assert.match(interactions, /searchParams\.set\("lang", currentLang\)/);
 });
 
-test("immersive gate embeds the approved sequential music queue and keeps artist discovery external", () => {
+test("immersive experience embeds the V3.7 sequential music queue and keeps artist discovery external", () => {
   assert.match(markup, /id="patroaiImmersiveAudio"/);
-  assert.match(markup, /\/media\/patroai-threshold\.mp3/);
+  assert.match(markup, /\/media\/patroai-v37-landing-111hz\.mp3/);
   assert.match(interactions, /audioPlaylist/);
+  assert.match(interactions, /\/media\/patroai-v37-landing-111hz\.mp3/);
   assert.match(interactions, /\/media\/patroai-threshold\.mp3/);
   assert.match(interactions, /\/media\/landingpage111hz-remix\.mp3/);
   assert.match(interactions, /\/media\/patroai-immersive-111hz\.mp3/);

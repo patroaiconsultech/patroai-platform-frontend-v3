@@ -9,7 +9,7 @@ type V37ImmersiveProps = {
   onPrivateAccess: () => void | Promise<void>;
 };
 
-type Stage = "gate" | "lobby" | "content";
+type Stage = "lobby" | "content";
 
 const nodes = [
   ["01", "Cocriação", "#cocriacao"],
@@ -21,7 +21,7 @@ const nodes = [
 ] as const;
 
 export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
-  const [stage, setStage] = useState<Stage>("gate");
+  const [stage, setStage] = useState<Stage>("lobby");
   const [playing, setPlaying] = useState(false);
   const coreRef = useRef<HTMLButtonElement>(null);
 
@@ -32,18 +32,6 @@ export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
     body.classList.toggle("v37-immersive-open", stage !== "content");
     return () => body.classList.remove("v37-immersive-open");
   }, [stage]);
-
-  const enter = async (withSound: boolean) => {
-    if (withSound) {
-      try {
-        await audio()?.play();
-        setPlaying(true);
-      } catch {
-        setPlaying(false);
-      }
-    }
-    setStage("lobby");
-  };
 
   const goTo = (target: string) => {
     setStage("content");
@@ -66,24 +54,7 @@ export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
   return (
     <section className={`v37-immersive v37-immersive--${stage}`} aria-label="Experiência imersiva PatroAI">
       <div className="v37-immersive__starfield" aria-hidden="true" />
-      {stage === "gate" ? (
-        <div className="v37-gate" role="dialog" aria-modal="true" aria-labelledby="v37-title">
-          <div className="v37-gate__portal" aria-hidden="true">
-            <div className="v37-gate__rings" />
-            <img src="/assets/patroai-perspective-preview.png" alt="" />
-          </div>
-          <div className="v37-gate__copy">
-            <img className="v37-gate__logo" src="/assets/patroai-logo-integrated.png" alt="PatroAI" />
-            <p>PATROAI · EXPERIÊNCIA IMERSIVA</p>
-            <h1 id="v37-title">Entre pelo núcleo.</h1>
-            <span>Uma experiência viva de inteligência, presença, som e movimento. Escolha como deseja iniciar.</span>
-            <button className="v37-primary" type="button" onClick={() => void enter(true)}><b>◉ Entrar com som</b><small>Ativar a trilha e entrar no núcleo imersivo</small></button>
-            <button className="v37-secondary" type="button" onClick={() => void enter(false)}>Entrar sem som</button>
-            <button className="v37-text" type="button" onClick={() => setStage("content")}>Ir para apresentação</button>
-          </div>
-        </div>
-      ) : (
-        <div className="v37-lobby">
+      <div className="v37-lobby">
           <header><span>PATROAI · NÚCLEO IMERSIVO</span><button type="button" onClick={() => setStage("content")}>Ir para apresentação</button></header>
           <div className="v37-lobby__orbit" aria-hidden="true"><i /><i /><i /></div>
           <button
@@ -98,7 +69,18 @@ export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
               coreRef.current?.style.setProperty("--drag", `translate(${x}px, ${y}px)`);
             }}
             onPointerUp={() => coreRef.current?.style.setProperty("--drag", "translate(0, 0)")}
-          ><img src="/assets/patroai-logo-integrated.png" alt="" /></button>
+          >
+            <video
+              aria-label="Vídeo em loop do núcleo PatroAI"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster="/assets/patroai-logo-integrated.png"
+              src="/media/patroai-v37-logo-loop.mp4"
+            />
+          </button>
           <h2>Escolha por onde deseja entrar.</h2>
           <p>O núcleo permanece vivo enquanto você navega.</p>
           <nav aria-label="Rotas da experiência imersiva">
@@ -106,8 +88,7 @@ export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
           </nav>
           <button className="v37-access" type="button" onClick={() => void onPrivateAccess()}>Acessar Plataforma</button>
           <div className="v37-dock" aria-label="Controle da experiência sonora"><button type="button" onClick={() => void toggleAudio()} aria-label={playing ? "Pausar música" : "Reproduzir música"}>{playing ? "Ⅱ" : "▶"}</button><span>FAIXA IMERSIVA</span><button type="button" onClick={() => { const track = audio(); if (track) track.muted = !track.muted; }} aria-label="Alternar mudo">♪</button></div>
-        </div>
-      )}
+      </div>
     </section>
   );
 }
