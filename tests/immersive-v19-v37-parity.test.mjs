@@ -5,6 +5,7 @@ import test from "node:test";
 const component = readFileSync(new URL("../src/landing/V37Immersive.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("../src/landing/premium.css", import.meta.url), "utf8");
 const landing = readFileSync(new URL("../src/routes/Landing.tsx", import.meta.url), "utf8");
+const interactions = readFileSync(new URL("../src/landing/premiumInteractions.ts", import.meta.url), "utf8");
 
 test("V3.8 gates the animated lobby before public anchors and private access", () => {
   for (const marker of ["#cocriacao", "#governanca", "#ecossistema", "#metodo", "#contato", "Acessar Plataforma", "patroai-v37-logo-loop.mp4"]) assert.match(component, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -18,10 +19,10 @@ test("V3.8 gates the animated lobby before public anchors and private access", (
   assert.match(component, /onPrivateAccess/);
 });
 
-test("V3.8.1 starts first-party audio directly after explicit user consent", () => {
+test("V3.8.2 starts first-party audio through the canonical controller after explicit consent", () => {
   assert.match(component, /const enterImmersive = async \(withSound: boolean\)/);
-  assert.match(component, /getImmersiveAudio/);
-  assert.match(component, /const playPromise = track\.play\(\)/);
+  assert.match(component, /sendAudioCommand\("start", true\)/);
+  assert.match(interactions, /const playbackReady = immersiveAudio\.play\(\)/);
   assert.match(component, /const toggleAudio/);
   assert.doesNotMatch(component, /immersiveSoundEntry/);
 });
@@ -115,38 +116,65 @@ test("V3.8 keeps private access contract and external media", () => {
 });
 
 
-test("V3.8.1 invokes AudioContext resume and audio play inside the explicit sound gesture", () => {
-  assert.match(component, /const enterImmersive = async \(withSound: boolean\)/);
-  assert.match(component, /resumePromise = bridge\.context\.resume\(\)/);
-  assert.match(component, /const playPromise = track\.play\(\)/);
-  assert.match(component, /await Promise\.all\(\[resumePromise, playPromise\]\)/);
+test("V3.8.2 invokes canonical analyser and audio playback from the synchronous command event", () => {
+  assert.match(component, /AUDIO_COMMAND_EVENT/);
+  assert.match(interactions, /const analyserReady = ensureAudioReactiveLogo\(\)/);
+  assert.match(interactions, /const playbackReady = immersiveAudio\.play\(\)/);
+  assert.match(interactions, /await Promise\.all\(\[analyserReady, resumeReady, playbackReady\]\)/);
 });
 
-test("V3.8.1 owns one shared audio bridge and does not delegate to the disabled legacy gate", () => {
-  assert.match(component, /let sharedAudioBridge: SharedAudioBridge \| null = null/);
-  assert.match(component, /createMediaElementSource\(track\)/);
-  assert.match(component, /track\.dataset\.patroaiAudioBridge = "v381"/);
-  assert.doesNotMatch(component, /auditedEntry\.click\(\)/);
-  assert.doesNotMatch(component, /immersiveSoundEntry/);
+test("V3.8.2 removes the V37 private MediaElementSource and delegates to premiumInteractions", () => {
+  assert.doesNotMatch(component, /SharedAudioBridge/);
+  assert.doesNotMatch(component, /createMediaElementSource\(track\)/);
+  assert.doesNotMatch(component, /patroaiAudioBridge = "v381"/);
+  assert.match(component, /patroai:v38-audio-command/);
+  assert.match(interactions, /createMediaElementSource\(immersiveAudio\)/);
 });
 
-test("V3.8.1 publishes live music bands for aurora and starfield", () => {
-  for (const variable of ["--music-low", "--music-mid", "--music-high", "--music-beat"]) {
-    assert.match(component, new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+test("V3.8.2 canonical analyser publishes live music bands for aurora and starfield", () => {
+  for (const variable of ["--music-bass", "--music-mid", "--music-high", "--music-beat"]) {
+    assert.match(interactions, new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
-  assert.match(component, /getByteFrequencyData/);
-  assert.match(component, /startReactiveFrame\(bridge\)/);
+  assert.match(interactions, /getByteFrequencyData/);
+  assert.match(interactions, /startAudioReactiveLogo/);
 });
 
-test("V3.8.1 never reports playing before HTMLMediaElement play succeeds", () => {
-  const soundHandler = component.slice(
-    component.indexOf("const enterImmersive"),
-    component.indexOf("const toggleAudio"),
-  );
-  const playIndex = soundHandler.indexOf("const playPromise = track.play()");
-  const successStateIndex = soundHandler.indexOf("setPlaying(true)");
-  assert.ok(playIndex >= 0);
-  assert.ok(successStateIndex > playIndex);
-  assert.match(soundHandler, /catch \{/);
-  assert.match(soundHandler, /setPlaying\(false\)/);
+test("V3.8.2 reports playing from the real media element result instead of optimistic local state", () => {
+  assert.match(component, /setPlaying\(result\.playing\)/);
+  assert.match(interactions, /playing: Boolean\(immersiveAudio && !immersiveAudio\.paused\)/);
+  assert.match(interactions, /emitV38AudioResult\(detail\.requestId, true\)/);
+});
+
+test("V3.8.2 delegates audio to the canonical premiumInteractions graph", () => {
+  assert.match(component, /patroai:v38-audio-command/);
+  assert.match(component, /patroai:v38-audio-result/);
+  assert.match(interactions, /onV38AudioCommand/);
+  assert.match(interactions, /const playbackReady = immersiveAudio\.play\(\)/);
+  assert.match(interactions, /const analyserReady = ensureAudioReactiveLogo\(\)/);
+  assert.match(interactions, /rampMasterGain\(0\.48, 0\.12\)/);
+});
+
+test("V3.8.2 keeps the legacy visual gate inert while retaining canonical audio", () => {
+  assert.match(interactions, /const legacyImmersiveUiEnabled = immersiveExperience !== false/);
+  assert.match(interactions, /immersiveGate\.hidden = true/);
+  assert.match(interactions, /patroai:v38-audio-command/);
+});
+
+test("V3.8.2 mobile core is centered outside grid flow and cannot widen the viewport", () => {
+  const v382 = css.slice(css.indexOf("V3.8.2 — MOBILE STABILIZATION"));
+  assert.match(v382, /@media \(max-width: 720px\)/);
+  assert.match(v382, /position:\s*absolute/);
+  assert.match(v382, /left:\s*50%/);
+  assert.match(v382, /translate3d\(-50%,\s*-50%,\s*0\)/);
+  assert.match(v382, /max-width:\s*100vw/);
+  assert.match(v382, /width:\s*min\(calc\(100vw - 28px\),\s*470px\)/);
+});
+
+test("V3.8.2 mobile music response removes rapid twinkle and beat scaling", () => {
+  const v382 = css.slice(css.indexOf("V3.8.2 — MOBILE STABILIZATION"));
+  assert.match(v382, /v371StarsBase 72s/);
+  assert.match(v382, /v371StarsLow 58s/);
+  assert.match(v382, /v371StarsMid 51s/);
+  assert.match(v382, /v371StarsHigh 45s/);
+  assert.doesNotMatch(v382, /var\(--v38-beat\).*scale/);
 });

@@ -1182,13 +1182,25 @@ export function mountPremiumLanding({
 
   applyLanguage(currentLang);
 
-  if (immersiveGate && immersiveExperience !== false) {
-    immersiveGate.hidden = false;
-    immersiveGate.classList.remove("is-leaving");
-    neuralLobby?.classList.remove("is-active", "is-exiting", "is-transitioning");
-    neuralLobby?.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("neural-lobby-open");
-    document.body.classList.add("immersive-gate-open");
+  if (immersiveGate) {
+    const legacyImmersiveUiEnabled = immersiveExperience !== false;
+
+    if (legacyImmersiveUiEnabled) {
+      immersiveGate.hidden = false;
+      immersiveGate.classList.remove("is-leaving");
+      neuralLobby?.classList.remove("is-active", "is-exiting", "is-transitioning");
+      neuralLobby?.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("neural-lobby-open");
+      document.body.classList.add("immersive-gate-open");
+    } else {
+      // V3.8+ renders its own React gate. Keep the legacy visual surfaces inert
+      // while retaining this module as the single canonical audio/analyser graph.
+      immersiveGate.hidden = true;
+      immersiveGate.classList.remove("is-leaving");
+      neuralLobby?.classList.remove("is-active", "is-exiting", "is-transitioning");
+      neuralLobby?.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("immersive-gate-open", "neural-lobby-open");
+    }
 
     const openNeuralLobby = () => {
       if (!neuralLobby) return;
@@ -1812,7 +1824,115 @@ export function mountPremiumLanding({
       );
     };
 
-    if (immersiveSoundEntry && immersiveAudio) {
+    type V38AudioCommandDetail = {
+      action: "start" | "pause" | "toggle" | "stop";
+      requestId: string;
+      reset?: boolean;
+    };
+
+    const emitV38AudioResult = (
+      requestId: string,
+      ok: boolean,
+      error?: string,
+    ) => {
+      document.dispatchEvent(
+        new CustomEvent("patroai:v38-audio-result", {
+          detail: {
+            requestId,
+            ok,
+            playing: Boolean(immersiveAudio && !immersiveAudio.paused),
+            error,
+          },
+        }),
+      );
+    };
+
+    const onV38AudioCommand = (event: Event) => {
+      const detail = (event as CustomEvent<V38AudioCommandDetail>).detail;
+      if (!detail?.requestId) return;
+
+      const execute = async () => {
+        if (!immersiveAudio) {
+          emitV38AudioResult(detail.requestId, false, "A trilha sonora não foi encontrada.");
+          return;
+        }
+
+        try {
+          if (detail.action === "pause") {
+            rampMasterGain(0.0001, 0.045);
+            immersiveAudio.pause();
+            resetAudioReactiveLogo();
+            syncMusicDock();
+            emitV38AudioResult(detail.requestId, true);
+            return;
+          }
+
+          if (detail.action === "stop") {
+            rampMasterGain(0.0001, 0.035);
+            immersiveAudio.pause();
+            if (detail.reset) immersiveAudio.currentTime = 0;
+            resetAudioReactiveLogo();
+            syncMusicDock();
+            emitV38AudioResult(detail.requestId, true);
+            return;
+          }
+
+          if (detail.action === "toggle" && !immersiveAudio.paused) {
+            rampMasterGain(0.0001, 0.045);
+            immersiveAudio.pause();
+            resetAudioReactiveLogo();
+            syncMusicDock();
+            emitV38AudioResult(detail.requestId, true);
+            return;
+          }
+
+          enableMotionOverride();
+          if (detail.reset || (immersiveAudio.ended && audioTrackIndex >= audioPlaylist.length - 1)) {
+            selectAudioTrack(0);
+            immersiveAudio.currentTime = 0;
+          }
+
+          // Critical mobile contract: calling ensureAudioReactiveLogo() executes
+          // AudioContext construction synchronously until its first await.
+          // play() is invoked immediately afterwards, still in this same
+          // synchronous CustomEvent dispatch that originated in the user's tap.
+          const analyserReady = ensureAudioReactiveLogo();
+          const resumeReady =
+            audioContext?.state === "suspended"
+              ? audioContext.resume()
+              : Promise.resolve();
+          const playbackReady = immersiveAudio.play();
+
+          await Promise.all([analyserReady, resumeReady, playbackReady]);
+          rampMasterGain(0.48, 0.12);
+          syncMusicDock();
+          startAudioReactiveLogo();
+          emitV38AudioResult(detail.requestId, true);
+        } catch {
+          syncMusicDock();
+          emitV38AudioResult(
+            detail.requestId,
+            false,
+            "O navegador não conseguiu iniciar a experiência sonora.",
+          );
+        }
+      };
+
+      void execute();
+    };
+
+    document.addEventListener(
+      "patroai:v38-audio-command",
+      onV38AudioCommand as EventListener,
+    );
+    cleanups.push(() =>
+      document.removeEventListener(
+        "patroai:v38-audio-command",
+        onV38AudioCommand as EventListener,
+      ),
+    );
+
+    if (legacyImmersiveUiEnabled && immersiveSoundEntry && immersiveAudio) {
       const onSoundEntry = async () => {
         enableMotionOverride();
         try {
@@ -1843,7 +1963,7 @@ export function mountPremiumLanding({
       cleanups.push(() =>
         immersiveSoundEntry.removeEventListener("click", onSoundEntry),
       );
-    } else if (immersiveSoundEntry) {
+    } else if (legacyImmersiveUiEnabled && immersiveSoundEntry) {
       const onSoundEntryWithoutAudio = () => {
         enableMotionOverride();
         closeImmersiveGate();
@@ -1860,7 +1980,7 @@ export function mountPremiumLanding({
       );
     }
 
-    if (immersiveSilent) {
+    if (legacyImmersiveUiEnabled && immersiveSilent) {
       const onSilentEntry = () => {
         if (immersiveAudio) {
           rampMasterGain(0.0001, 0.045);
@@ -1879,7 +1999,7 @@ export function mountPremiumLanding({
       );
     }
 
-    if (immersiveDirect) {
+    if (legacyImmersiveUiEnabled && immersiveDirect) {
       immersiveDirect.addEventListener("click", enterPresentationDirectly);
       cleanups.push(() =>
         immersiveDirect.removeEventListener("click", enterPresentationDirectly),
@@ -1889,9 +2009,11 @@ export function mountPremiumLanding({
     const onGateKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") enterPresentationDirectly(event);
     };
-    document.addEventListener("keydown", onGateKeyDown);
-    cleanups.push(() => document.removeEventListener("keydown", onGateKeyDown));
-    window.setTimeout(() => immersiveSoundEntry?.focus(), 40);
+    if (legacyImmersiveUiEnabled) {
+      document.addEventListener("keydown", onGateKeyDown);
+      cleanups.push(() => document.removeEventListener("keydown", onGateKeyDown));
+      window.setTimeout(() => immersiveSoundEntry?.focus(), 40);
+    }
 
     if (immersiveAudio && musicDockToggle) {
       const onMusicToggle = async () => {

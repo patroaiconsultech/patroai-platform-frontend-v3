@@ -1,10 +1,10 @@
 /**
- * PatroAI immersive landing V3.8.1 — Mobile-first Aurora Gate + Audio Bridge.
+ * PatroAI immersive landing V3.8.2 — Mobile Stabilization + Canonical Audio.
  *
  * Contract:
  * - first interaction is an explicit immersive audio consent gate;
  * - audio.play() is invoked inside the original user gesture;
- * - one shared Web Audio analyser is created at most once for this module;
+ * - sound/reactivity are delegated to the canonical premiumInteractions audio graph;
  * - starfield + aurora consume live --music-* variables;
  * - no decorative orbit/ring geometry;
  * - mobile is the primary composition;
@@ -18,27 +18,25 @@ type V37ImmersiveProps = {
 
 type Stage = "intro" | "lobby" | "exiting" | "content";
 
-type SharedAudioBridge = {
-  element: HTMLAudioElement;
-  context: AudioContext | null;
-  source: MediaElementAudioSourceNode | null;
-  analyser: AnalyserNode | null;
-  frequencyData: Uint8Array | null;
-  frame: number;
-  lastSampleAt: number;
-  low: number;
-  mid: number;
-  high: number;
-  beatFast: number;
-  beatSlow: number;
-  beat: number;
+type AudioCommandAction = "start" | "pause" | "toggle" | "stop";
+
+type AudioCommandDetail = {
+  action: AudioCommandAction;
+  requestId: string;
+  reset?: boolean;
+};
+
+type AudioResultDetail = {
+  requestId: string;
+  ok: boolean;
+  playing: boolean;
+  error?: string;
 };
 
 const EXIT_DURATION_MS = 820;
 const PRIVATE_EXIT_DURATION_MS = 560;
-const MOBILE_AUDIO_SAMPLE_MS = 34;
-
-let sharedAudioBridge: SharedAudioBridge | null = null;
+const AUDIO_COMMAND_EVENT = "patroai:v38-audio-command";
+const AUDIO_RESULT_EVENT = "patroai:v38-audio-result";
 
 const nodes = [
   ["01", "Cocriação", "#cocriacao"],
@@ -59,158 +57,35 @@ function getImmersiveAudio() {
   ) as HTMLAudioElement | null;
 }
 
-function averageBand(data: Uint8Array, from: number, to: number) {
-  const start = Math.max(0, Math.min(data.length - 1, Math.floor(from)));
-  const end = Math.max(start + 1, Math.min(data.length, Math.ceil(to)));
-  let sum = 0;
-  for (let index = start; index < end; index += 1) sum += data[index] ?? 0;
-  return sum / Math.max(1, end - start) / 255;
-}
+function sendAudioCommand(action: AudioCommandAction, reset = false) {
+  const requestId = `v382-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-function setMusicVariables(low: number, mid: number, high: number, beat: number) {
-  const root = document.documentElement;
-  const energy = Math.min(1, low * 0.40 + mid * 0.38 + high * 0.22);
-  root.style.setProperty("--music-low", low.toFixed(3));
-  root.style.setProperty("--music-bass", low.toFixed(3));
-  root.style.setProperty("--music-mid", mid.toFixed(3));
-  root.style.setProperty("--music-high", high.toFixed(3));
-  root.style.setProperty("--music-beat", beat.toFixed(3));
-  root.style.setProperty("--music-energy", energy.toFixed(3));
-  root.style.setProperty("--music-pulse", Math.min(1, low * 0.46 + beat * 0.80).toFixed(3));
-}
+  return new Promise<AudioResultDetail>((resolve) => {
+    const timeout = window.setTimeout(() => {
+      document.removeEventListener(AUDIO_RESULT_EVENT, onResult as EventListener);
+      resolve({
+        requestId,
+        ok: false,
+        playing: false,
+        error: "A experiência sonora não respondeu a tempo.",
+      });
+    }, 1800);
 
-function resetMusicVariables() {
-  setMusicVariables(0, 0, 0, 0);
-}
+    function onResult(event: Event) {
+      const detail = (event as CustomEvent<AudioResultDetail>).detail;
+      if (!detail || detail.requestId !== requestId) return;
+      window.clearTimeout(timeout);
+      document.removeEventListener(AUDIO_RESULT_EVENT, onResult as EventListener);
+      resolve(detail);
+    }
 
-function ensureSharedAudioBridge(track: HTMLAudioElement) {
-  if (sharedAudioBridge?.element === track) return sharedAudioBridge;
-
-  // Playback must remain functional even when Web Audio is unsupported or
-  // unavailable. The analyser is enhancement, never a gate for sound.
-  const bridge: SharedAudioBridge = {
-    element: track,
-    context: null,
-    source: null,
-    analyser: null,
-    frequencyData: null,
-    frame: 0,
-    lastSampleAt: 0,
-    low: 0,
-    mid: 0,
-    high: 0,
-    beatFast: 0,
-    beatSlow: 0,
-    beat: 0,
-  };
-
-  sharedAudioBridge = bridge;
-  track.dataset.patroaiAudioBridge = "v381";
-
-  if (prefersReducedMotion()) return bridge;
-
-  const AudioContextClass =
-    window.AudioContext ||
-    (
-      window as Window & {
-        webkitAudioContext?: typeof AudioContext;
-      }
-    ).webkitAudioContext;
-
-  if (!AudioContextClass) return bridge;
-
-  try {
-    const mobileProfile =
-      window.innerWidth <= 820 ||
-      window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-
-    bridge.context = new AudioContextClass(
-      mobileProfile
-        ? { latencyHint: "playback" }
-        : { latencyHint: "interactive" },
+    document.addEventListener(AUDIO_RESULT_EVENT, onResult as EventListener);
+    document.dispatchEvent(
+      new CustomEvent<AudioCommandDetail>(AUDIO_COMMAND_EVENT, {
+        detail: { action, requestId, reset },
+      }),
     );
-    bridge.source = bridge.context.createMediaElementSource(track);
-    bridge.analyser = bridge.context.createAnalyser();
-    bridge.analyser.fftSize = mobileProfile ? 64 : 256;
-    bridge.analyser.smoothingTimeConstant = mobileProfile ? 0.76 : 0.66;
-    bridge.frequencyData = new Uint8Array(bridge.analyser.frequencyBinCount);
-
-    bridge.source.connect(bridge.analyser);
-    bridge.analyser.connect(bridge.context.destination);
-  } catch {
-    // Sound remains available through HTMLMediaElement even if analysis fails.
-    bridge.context = null;
-    bridge.source = null;
-    bridge.analyser = null;
-    bridge.frequencyData = null;
-  }
-
-  return bridge;
-}
-
-function startReactiveFrame(bridge: SharedAudioBridge) {
-  if (!bridge.analyser || !bridge.frequencyData || bridge.frame) return;
-
-  const render = (timestamp: number) => {
-    bridge.frame = 0;
-
-    if (bridge.element.paused || bridge.element.ended) {
-      resetMusicVariables();
-      return;
-    }
-
-    const mobileProfile =
-      window.innerWidth <= 820 ||
-      window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-
-    if (
-      document.visibilityState === "visible" &&
-      (!mobileProfile || timestamp - bridge.lastSampleAt >= MOBILE_AUDIO_SAMPLE_MS)
-    ) {
-      bridge.lastSampleAt = timestamp;
-      bridge.analyser?.getByteFrequencyData(bridge.frequencyData!);
-
-      const count = bridge.frequencyData!.length;
-      const lowRaw = averageBand(bridge.frequencyData!, 0, count * 0.18);
-      const midRaw = averageBand(bridge.frequencyData!, count * 0.18, count * 0.58);
-      const highRaw = averageBand(bridge.frequencyData!, count * 0.58, count);
-
-      bridge.low += (lowRaw - bridge.low) * 0.34;
-      bridge.mid += (midRaw - bridge.mid) * 0.30;
-      bridge.high += (highRaw - bridge.high) * 0.28;
-
-      const instantaneous = lowRaw * 0.64 + midRaw * 0.24 + highRaw * 0.12;
-      bridge.beatFast += (instantaneous - bridge.beatFast) * 0.52;
-      bridge.beatSlow += (instantaneous - bridge.beatSlow) * 0.055;
-      const candidate = Math.min(
-        1,
-        Math.max(0, (bridge.beatFast - bridge.beatSlow * 1.015) * 12.5),
-      );
-      bridge.beat =
-        candidate > bridge.beat
-          ? bridge.beat + (candidate - bridge.beat) * 0.90
-          : bridge.beat * 0.72;
-
-      setMusicVariables(
-        Math.min(1, bridge.low * 1.55),
-        Math.min(1, bridge.mid * 1.62),
-        Math.min(1, bridge.high * 1.78),
-        Math.min(1, bridge.beat),
-      );
-    }
-
-    bridge.frame = window.requestAnimationFrame(render);
-  };
-
-  bridge.frame = window.requestAnimationFrame(render);
-}
-
-function stopReactiveFrame(bridge: SharedAudioBridge | null) {
-  if (bridge?.frame) {
-    window.cancelAnimationFrame(bridge.frame);
-    bridge.frame = 0;
-  }
-  resetMusicVariables();
+  });
 }
 
 export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
@@ -245,22 +120,13 @@ export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
     const onPlay = () => {
       setPlaying(true);
       setAudioError("");
-      const bridge = ensureSharedAudioBridge(track);
-      startReactiveFrame(bridge);
     };
-    const onPause = () => {
-      setPlaying(false);
-      stopReactiveFrame(sharedAudioBridge);
-    };
-    const onEnded = () => {
-      setPlaying(false);
-      stopReactiveFrame(sharedAudioBridge);
-    };
+    const onPause = () => setPlaying(false);
+    const onEnded = () => setPlaying(false);
 
     track.addEventListener("play", onPlay);
     track.addEventListener("pause", onPause);
     track.addEventListener("ended", onEnded);
-
     setPlaying(!track.paused);
 
     return () => {
@@ -313,89 +179,32 @@ export function V37Immersive({ onPrivateAccess }: V37ImmersiveProps) {
   const enterImmersive = async (withSound: boolean) => {
     if (stage !== "intro") return;
 
-    const track = getImmersiveAudio();
-
     if (!withSound) {
-      if (track) {
-        track.pause();
-        track.currentTime = 0;
-      }
-      stopReactiveFrame(sharedAudioBridge);
+      const result = await sendAudioCommand("stop", true);
       setPlaying(false);
-      setAudioError("");
+      setAudioError(result.ok ? "" : result.error || "");
       setStage("lobby");
       return;
     }
 
-    if (!track) {
-      setPlaying(false);
-      setAudioError("A trilha não foi encontrada. Você pode continuar sem áudio.");
-      setStage("lobby");
-      return;
-    }
-
-    track.currentTime = 0;
-    const bridge = ensureSharedAudioBridge(track);
-
-    // Critical mobile contract: resume() and play() are INVOKED synchronously
-    // inside the original button gesture. We only await after both calls exist.
-    let resumePromise: Promise<void> = Promise.resolve();
-    if (bridge.context?.state === "suspended") {
-      resumePromise = bridge.context.resume();
-    }
-
-    const playPromise = track.play();
-
-    try {
-      await Promise.all([resumePromise, playPromise]);
-      setPlaying(true);
-      setAudioError("");
-      startReactiveFrame(bridge);
-    } catch {
-      setPlaying(false);
-      setAudioError(
-        "Não foi possível iniciar o áudio automaticamente. Toque no controle de som para tentar novamente.",
-      );
-    }
-
+    // CustomEvent dispatch is synchronous. premiumInteractions receives this
+    // command inside the original tap/click activation and invokes both
+    // AudioContext resume + HTMLMediaElement play before its first await.
+    const result = await sendAudioCommand("start", true);
+    setPlaying(result.playing);
+    setAudioError(
+      result.ok
+        ? ""
+        : result.error ||
+          "Não foi possível iniciar o áudio. Toque no controle para tentar novamente.",
+    );
     setStage("lobby");
   };
 
   const toggleAudio = async () => {
-    const track = getImmersiveAudio();
-
-    if (!track) {
-      setPlaying(false);
-      setAudioError("A trilha sonora não está disponível neste dispositivo.");
-      return;
-    }
-
-    if (!track.paused) {
-      track.pause();
-      setPlaying(false);
-      stopReactiveFrame(sharedAudioBridge);
-      return;
-    }
-
-    const bridge = ensureSharedAudioBridge(track);
-
-    let resumePromise: Promise<void> = Promise.resolve();
-    if (bridge.context?.state === "suspended") {
-      resumePromise = bridge.context.resume();
-    }
-    const playPromise = track.play();
-
-    try {
-      await Promise.all([resumePromise, playPromise]);
-      setPlaying(true);
-      setAudioError("");
-      startReactiveFrame(bridge);
-    } catch {
-      setPlaying(false);
-      setAudioError(
-        "O navegador bloqueou a reprodução. Toque novamente no controle de áudio.",
-      );
-    }
+    const result = await sendAudioCommand("toggle");
+    setPlaying(result.playing);
+    setAudioError(result.ok ? "" : result.error || "Não foi possível alterar o áudio.");
   };
 
   if (stage === "content") return null;
