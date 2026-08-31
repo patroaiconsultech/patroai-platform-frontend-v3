@@ -42,6 +42,8 @@ import SafeMarkdown from "../components/SafeMarkdown";
 import PwaInstallButton from "../components/PwaInstallButton";
 import KnowledgeDestinationPicker, { KnowledgeDestination } from "../components/KnowledgeDestinationPicker";
 import PersonalKnowledgePanel from "../components/PersonalKnowledgePanel";
+import ImmersivePresencePanel from "../components/ImmersivePresencePanel";
+import "../console-immersive.css";
 import { ONBOARDING_DRAFT_KEY } from "./AccessPortal";
 import {
   formatConversationTimestamp,
@@ -1829,7 +1831,7 @@ export default function AppConsole() {
   }
 
   return (
-    <div className="console-shell">
+    <div className="console-shell console-shell--immersive">
       <aside
         className={showMobileSidebar ? "console-sidebar console-sidebar--open" : "console-sidebar"}
         aria-label="Navegação do console"
@@ -2344,7 +2346,23 @@ export default function AppConsole() {
         </footer>
       </main>
 
-
+      <ImmersivePresencePanel
+        agentName={selectedAgentName}
+        agentRole={selectedAgentRole}
+        realtimeState={realtimeState}
+        realtimeReady={realtimeReady}
+        realtimeBusy={realtimeBusy}
+        voiceState={voiceState}
+        voiceReady={Boolean(authenticated && configured && threadId)}
+        runtimeProven={Boolean(realtimeCapabilities?.runtime_proven)}
+        ownershipLocked={Boolean(threadId)}
+        onRealtimeToggle={handleRealtimeButton}
+        onVoiceToggle={handleVoiceButton}
+        onShowRealtimeStatus={() => {
+          setShowRealtimeInfo(true);
+          void refreshRealtimeCapabilities();
+        }}
+      />
 
       {showRenameThread ? (
         <div className="modal" role="presentation">

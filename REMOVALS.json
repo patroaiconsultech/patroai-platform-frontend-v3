@@ -1,0 +1,11 @@
+{
+  "remove": [
+    "005_legacy_claim_on_demand.py",
+    "alembic.ini",
+    "conftest.py",
+    "pyproject.toml",
+    "requirements-test.lock.txt",
+    "requirements.lock.txt",
+    "uv.lock"
+  ]
+}

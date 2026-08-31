@@ -14,7 +14,9 @@
     "check": "npm run check:server && npm run check:sw && npm run test && npm run verify:lock",
     "verify:lock": "node scripts/verify-lockfile.mjs",
     "verify:dist": "node scripts/verify-dist.mjs",
-    "build:evidence": "node scripts/build-evidence.mjs"
+    "build:evidence": "node scripts/build-evidence.mjs",
+    "verify:boundary": "node scripts/verify-package-boundary.mjs",
+    "release:manifest": "node scripts/build-release-manifest.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "4.3.4",

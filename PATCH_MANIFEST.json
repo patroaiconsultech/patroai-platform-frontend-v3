@@ -1,0 +1,53 @@
+{
+  "product": "PatroAI Platform",
+  "candidate": "Premium Immersive Realtime Voice RC",
+  "component": "frontend",
+  "baseline_artifact": "patroai-platform-frontend-v3-main (1).zip",
+  "baseline_sha256": "fa2ad7ae6d11a5ee890fb4d02955f61e927739617f06366c8adb6e7e25d77ba6",
+  "repository_expected": "https://github.com/patroaiconsultech/patroai-platform-frontend-v3",
+  "branch": "NOT_PROVEN_BY_ZIP",
+  "commit_sha": "NOT_PROVEN_BY_ZIP",
+  "modified_files": [
+    ".github/workflows/01-verify-build.yml",
+    "package.json",
+    "src/routes/AppConsole.tsx"
+  ],
+  "new_files": [
+    "scripts/build-release-manifest.mjs",
+    "scripts/verify-package-boundary.mjs",
+    "src/components/ImmersivePresencePanel.tsx",
+    "src/console-immersive.css",
+    "tests/immersive-console-rc.test.mjs"
+  ],
+  "removed_files": [
+    "005_legacy_claim_on_demand.py",
+    "alembic.ini",
+    "conftest.py",
+    "pyproject.toml",
+    "requirements-test.lock.txt",
+    "requirements.lock.txt",
+    "uv.lock"
+  ],
+  "premium_scope": {
+    "functional_delta_vs_rc2": "NONE",
+    "reason_for_reissue": "coordinated premium audit set"
+  },
+  "validation": {
+    "node_tests": {
+      "passed": 331,
+      "failed": 0
+    },
+    "verify_lockfile": "PASS",
+    "verify_package_boundary": "PASS",
+    "server_syntax": "PASS",
+    "service_worker_syntax": "PASS",
+    "vite_production_build": "NOT_VERIFIED"
+  },
+  "governance": {
+    "commit_executed": false,
+    "merge_executed": false,
+    "deploy_executed": false,
+    "migration_executed": false,
+    "human_approval_required_for_deploy": true
+  }
+}
