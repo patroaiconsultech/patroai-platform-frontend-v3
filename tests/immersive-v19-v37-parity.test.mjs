@@ -16,14 +16,14 @@ test("V3.8 gates the animated lobby before public anchors and private access", (
   assert.match(component, /loop/);
   assert.match(component, /preload="metadata"/);
   assert.match(component, /onPrivateAccess/);
-  assert.match(landing, /immersiveExperience: false/);
 });
 
-test("V3.8 reuses the first-party audio pipeline only after explicit user consent", () => {
+test("V3.8.1 starts first-party audio directly after explicit user consent", () => {
   assert.match(component, /const enterImmersive = async \(withSound: boolean\)/);
-  assert.match(component, /immersiveSoundEntry/);
-  assert.match(component, /data-immersive-silent/);
+  assert.match(component, /getImmersiveAudio/);
+  assert.match(component, /const playPromise = track\.play\(\)/);
   assert.match(component, /const toggleAudio/);
+  assert.doesNotMatch(component, /immersiveSoundEntry/);
 });
 
 test("V3.7 implementation protects mobile framing and reduced motion without embedded media", () => {
@@ -112,4 +112,41 @@ test("V3.8 keeps private access contract and external media", () => {
   assert.match(component, /onPrivateAccess/);
   assert.match(component, /\/media\/patroai-v37-logo-loop\.mp4/);
   assert.doesNotMatch(component, /data:video\//);
+});
+
+
+test("V3.8.1 invokes AudioContext resume and audio play inside the explicit sound gesture", () => {
+  assert.match(component, /const enterImmersive = async \(withSound: boolean\)/);
+  assert.match(component, /resumePromise = bridge\.context\.resume\(\)/);
+  assert.match(component, /const playPromise = track\.play\(\)/);
+  assert.match(component, /await Promise\.all\(\[resumePromise, playPromise\]\)/);
+});
+
+test("V3.8.1 owns one shared audio bridge and does not delegate to the disabled legacy gate", () => {
+  assert.match(component, /let sharedAudioBridge: SharedAudioBridge \| null = null/);
+  assert.match(component, /createMediaElementSource\(track\)/);
+  assert.match(component, /track\.dataset\.patroaiAudioBridge = "v381"/);
+  assert.doesNotMatch(component, /auditedEntry\.click\(\)/);
+  assert.doesNotMatch(component, /immersiveSoundEntry/);
+});
+
+test("V3.8.1 publishes live music bands for aurora and starfield", () => {
+  for (const variable of ["--music-low", "--music-mid", "--music-high", "--music-beat"]) {
+    assert.match(component, new RegExp(variable.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.match(component, /getByteFrequencyData/);
+  assert.match(component, /startReactiveFrame\(bridge\)/);
+});
+
+test("V3.8.1 never reports playing before HTMLMediaElement play succeeds", () => {
+  const soundHandler = component.slice(
+    component.indexOf("const enterImmersive"),
+    component.indexOf("const toggleAudio"),
+  );
+  const playIndex = soundHandler.indexOf("const playPromise = track.play()");
+  const successStateIndex = soundHandler.indexOf("setPlaying(true)");
+  assert.ok(playIndex >= 0);
+  assert.ok(successStateIndex > playIndex);
+  assert.match(soundHandler, /catch \{/);
+  assert.match(soundHandler, /setPlaying\(false\)/);
 });
