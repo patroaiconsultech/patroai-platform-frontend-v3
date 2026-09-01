@@ -1,4 +1,5 @@
 import React from "react";
+import RealtimeAvatar, { RealtimeAvatarState } from "./RealtimeAvatar";
 
 type RealtimeState =
   | "idle"
@@ -26,17 +27,10 @@ type Props = {
   onShowRealtimeStatus: () => void;
 };
 
-type PresenceVisualState =
-  | "ready"
-  | "listening"
-  | "thinking"
-  | "speaking"
-  | "error";
-
 function presenceState(
   realtimeState: RealtimeState,
   voiceState: VoiceState,
-): PresenceVisualState {
+): RealtimeAvatarState {
   if (realtimeState === "error") return "error";
   if (realtimeState === "speaking") return "speaking";
   if (
@@ -52,12 +46,27 @@ function presenceState(
   return "ready";
 }
 
-const labels: Record<PresenceVisualState, string> = {
-  ready: "READY",
-  listening: "LISTENING",
-  thinking: "THINKING",
-  speaking: "SPEAKING",
-  error: "ERROR",
+const stateCopy: Record<RealtimeAvatarState, { title: string; detail: string }> = {
+  ready: {
+    title: "Pronto para conversar",
+    detail: "Ative o Realtime para iniciar uma conversa por voz.",
+  },
+  listening: {
+    title: "Estou ouvindo",
+    detail: "Fale naturalmente. Você pode interromper a qualquer momento.",
+  },
+  thinking: {
+    title: "Construindo a resposta",
+    detail: "Sua fala está sendo transformada em contexto para o Co-Criador.",
+  },
+  speaking: {
+    title: "Falando com você",
+    detail: "A resposta está sendo reproduzida agora.",
+  },
+  error: {
+    title: "Conexão interrompida",
+    detail: "Abra o status do Realtime para revisar a disponibilidade.",
+  },
 };
 
 export default function ImmersivePresencePanel({
@@ -76,81 +85,92 @@ export default function ImmersivePresencePanel({
 }: Props) {
   const state = presenceState(realtimeState, voiceState);
   const realtimeActive = !["idle", "error"].includes(realtimeState);
+  const copy = stateCopy[state];
 
   return (
     <aside
       className="immersive-presence"
-      aria-label={`Presença imersiva de ${agentName}`}
+      aria-label={`Presença de voz de ${agentName}`}
       data-state={state}
+      data-realtime-active={realtimeActive ? "true" : "false"}
     >
+      <button
+        type="button"
+        className="presence-mobile-toggle"
+        onClick={onRealtimeToggle}
+        aria-pressed={realtimeActive}
+        aria-label={realtimeActive ? "Encerrar Realtime" : "Iniciar Realtime"}
+      >
+        <span className="presence-mobile-toggle__orb" aria-hidden="true" />
+        <span>
+          <strong>{agentName}</strong>
+          <small>{copy.title}</small>
+        </span>
+      </button>
+
       <header className="immersive-presence__header">
         <div>
-          <span>Presença do Cocriador</span>
+          <span>Presença do Co-Criador</span>
           <strong>{agentName}</strong>
           <small>{agentRole}</small>
         </div>
         <button
           type="button"
-          className={runtimeProven ? "presence-proof presence-proof--proven" : "presence-proof"}
+          className={
+            runtimeProven
+              ? "presence-proof presence-proof--proven"
+              : "presence-proof"
+          }
           onClick={onShowRealtimeStatus}
-          title="Abrir status técnico do Realtime"
+          title="Abrir status do Realtime"
         >
-          {runtimeProven ? "RUNTIME PROVADO" : "RUNTIME A VALIDAR"}
+          {runtimeProven ? "REALTIME VERIFICADO" : "VERIFICAR REALTIME"}
         </button>
       </header>
 
-      <div className="immersive-presence__stage" aria-hidden="true">
-        <div className="immersive-presence__halo" />
-        <div className="immersive-humanoid">
-          <div className="immersive-humanoid__head" />
-          <div className="immersive-humanoid__neck" />
-          <div className="immersive-humanoid__torso">
-            <i className="immersive-circuit immersive-circuit--one" />
-            <i className="immersive-circuit immersive-circuit--two" />
-            <i className="immersive-circuit immersive-circuit--three" />
-          </div>
-          <div className="immersive-humanoid__arm immersive-humanoid__arm--left" />
-          <div className="immersive-humanoid__arm immersive-humanoid__arm--right" />
-          <div className="immersive-humanoid__pelvis" />
-        </div>
+      <div className="immersive-presence__stage">
+        <RealtimeAvatar state={state} agentName={agentName} />
       </div>
 
       <section className="immersive-presence__runtime" aria-live="polite">
         <div className="presence-state-row">
           <span className="presence-state-led" aria-hidden="true" />
-          <strong>{labels[state]}</strong>
-          <code>PRESENCE_V1</code>
+          <div>
+            <strong>{copy.title}</strong>
+            <small>{copy.detail}</small>
+          </div>
         </div>
 
         <div
-          className={state === "listening" || state === "speaking" ? "presence-wave presence-wave--active" : "presence-wave"}
+          className={
+            state === "listening" || state === "speaking"
+              ? "presence-wave presence-wave--active"
+              : "presence-wave"
+          }
           aria-hidden="true"
         >
           <i /><i /><i /><i /><i /><i /><i />
         </div>
 
-        <div className="presence-governance">
-          <span>ownership</span>
-          <strong>{ownershipLocked ? "LOCKED" : "PENDING"}</strong>
-        </div>
-        <div className="presence-governance">
-          <span>realtime</span>
-          <strong>{realtimeReady ? "READY" : "GATED"}</strong>
-        </div>
-        <div className="presence-governance">
-          <span>voice</span>
-          <strong>{voiceReady ? "AVAILABLE" : "GATED"}</strong>
+        <div className="presence-trust">
+          <span>{ownershipLocked ? "Identidade protegida" : "Preparando contexto"}</span>
+          <span>{realtimeReady ? "Realtime disponível" : "Realtime em preparação"}</span>
+          <span>{voiceReady ? "Voz disponível" : "Voz indisponível"}</span>
         </div>
 
         <div className="presence-actions">
           <button
             type="button"
-            className={realtimeActive ? "presence-action presence-action--active" : "presence-action"}
+            className={
+              realtimeActive
+                ? "presence-action presence-action--active"
+                : "presence-action"
+            }
             onClick={onRealtimeToggle}
             disabled={realtimeBusy}
             aria-pressed={realtimeActive}
           >
-            <span aria-hidden="true">RT</span>
+            <span aria-hidden="true">{realtimeActive ? "■" : "◉"}</span>
             {realtimeActive ? "Encerrar Realtime" : "Iniciar Realtime"}
           </button>
           <button
@@ -165,10 +185,13 @@ export default function ImmersivePresencePanel({
           </button>
         </div>
 
-        <p>
-          A presença visual reflete o estado do runtime; ela nunca substitui tenant,
-          autoria, ownership ou persistência.
-        </p>
+        <button
+          type="button"
+          className="presence-details-link"
+          onClick={onShowRealtimeStatus}
+        >
+          Ver status e requisitos
+        </button>
       </section>
     </aside>
   );

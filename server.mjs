@@ -116,6 +116,19 @@ function acceptsHtml(request) {
   return !accept || accept.includes("text/html") || accept.includes("*/*");
 }
 
+function seoHeaders(response, pathname) {
+  const privateSurface =
+    pathname === "/app" ||
+    pathname === "/access" ||
+    pathname === "/admin" ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/invite/");
+
+  if (privateSurface) {
+    response.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
+}
+
 http
   .createServer((request, response) => {
     securityHeaders(response);
@@ -125,6 +138,8 @@ http
       response.writeHead(400).end("Bad request");
       return;
     }
+
+    seoHeaders(response, pathname);
 
     if (pathname === "/env.js") {
       response.setHeader("Content-Type", "text/javascript; charset=utf-8");

@@ -33,9 +33,9 @@ test("PWA metadata survives the restored application shell", () => {
 });
 
 test("public crawl surfaces are explicit and brand-consistent", () => {
-  assert.match(robots, /Sitemap: https:\/\/plataforma-efata-777-frontend-production\.up\.railway\.app\/sitemap\.xml/);
+  assert.match(robots, /Sitemap: https:\/\/www\.patroai\.com\/sitemap\.xml/);
   assert.match(robots, /Disallow: \/access/);
-  assert.match(sitemap, /<loc>https:\/\/plataforma-efata-777-frontend-production\.up\.railway\.app\/\<\/loc>/);
+  assert.match(sitemap, /<loc>https:\/\/www\.patroai\.com\/\<\/loc>/);
   assert.match(manifest, /"name": "PatroAI"/);
   assert.match(manifest, /"short_name": "PatroAI"/);
   assert.doesNotMatch(manifest, /ORKIO — Inteligência Orquestrada/);
@@ -112,7 +112,7 @@ test("production shell remains compatible with strict script CSP", () => {
 
 test("public shell exposes complete technical SEO signals", () => {
   assert.match(index, /name="robots" content="index,follow/);
-  assert.match(index, /rel="canonical" href="https:\/\/plataforma-efata-777-frontend-production\.up\.railway\.app\//);
+  assert.match(index, /rel="canonical" href="https:\/\/www\.patroai\.com\//);
   assert.match(index, /property="og:type" content="website"/);
   assert.match(index, /property="og:url"/);
   assert.match(index, /name="twitter:card" content="summary_large_image"/);

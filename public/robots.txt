@@ -5,4 +5,5 @@ Disallow: /access
 Disallow: /admin
 Disallow: /auth/
 Disallow: /invite/
-Sitemap: https://plataforma-efata-777-frontend-production.up.railway.app/sitemap.xml
+
+Sitemap: https://www.patroai.com/sitemap.xml
