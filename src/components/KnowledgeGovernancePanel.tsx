@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import KnowledgeNavigator from "./KnowledgeNavigator";
 import {
   ApiError,
   deleteKnowledge,
@@ -36,6 +37,7 @@ export default function KnowledgeGovernancePanel({ isPlatformOwner }: Props) {
   const [error, setError] = useState("");
   const [versions, setVersions] = useState<Record<string, KnowledgeDocument[]>>({});
   const [pendingSupersede, setPendingSupersede] = useState<KnowledgeDocument | null>(null);
+  const [navigatorDocument, setNavigatorDocument] = useState<KnowledgeDocument | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const supersedeRef = useRef<HTMLInputElement | null>(null);
 
@@ -235,6 +237,9 @@ export default function KnowledgeGovernancePanel({ isPlatformOwner }: Props) {
                     </button>
                   </>
                 ) : null}
+                <button type="button" onClick={() => setNavigatorDocument(item)}>
+                  Navegar
+                </button>
                 <button
                   type="button"
                   disabled={actionBusy === `versions:${item.id}`}
@@ -259,6 +264,12 @@ export default function KnowledgeGovernancePanel({ isPlatformOwner }: Props) {
       <p className="knowledge-governance__boundary">
         O painel não concede autoridade: o backend valida papel canônico e tenant em cada operação.
       </p>
+      <KnowledgeNavigator
+        open={Boolean(navigatorDocument)}
+        document={navigatorDocument}
+        canProcess={true}
+        onClose={() => setNavigatorDocument(null)}
+      />
     </section>
   );
 }

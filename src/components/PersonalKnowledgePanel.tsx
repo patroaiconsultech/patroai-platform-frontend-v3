@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import KnowledgeNavigator from "./KnowledgeNavigator";
 import {
   ApiError,
   deleteKnowledge,
@@ -28,6 +29,7 @@ export default function PersonalKnowledgePanel({ open, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState("");
   const [error, setError] = useState("");
+  const [navigatorDocument, setNavigatorDocument] = useState<KnowledgeDocument | null>(null);
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -94,17 +96,28 @@ export default function PersonalKnowledgePanel({ open, onClose }: Props) {
                   {item.filename} · SHA {item.sha256.slice(0, 12)}…
                 </small>
               </div>
-              <button
-                type="button"
-                onClick={() => void remove(item)}
-                disabled={deleting === item.id}
-              >
-                {deleting === item.id ? "Removendo…" : "Remover"}
-              </button>
+              <div className="personal-knowledge__actions">
+                <button type="button" onClick={() => setNavigatorDocument(item)}>
+                  Navegar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void remove(item)}
+                  disabled={deleting === item.id}
+                >
+                  {deleting === item.id ? "Removendo…" : "Remover"}
+                </button>
+              </div>
             </article>
           ))}
         </div>
       </section>
+      <KnowledgeNavigator
+        open={Boolean(navigatorDocument)}
+        document={navigatorDocument}
+        canProcess={true}
+        onClose={() => setNavigatorDocument(null)}
+      />
     </div>
   );
 }

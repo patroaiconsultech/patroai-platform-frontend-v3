@@ -2339,3 +2339,95 @@ button.header-cta {
   .knowledge-destination__grid { grid-template-columns:1fr; }
   .personal-knowledge__item { align-items:flex-start; flex-direction:column; }
 }
+
+
+/* Knowledge Large Document Navigator — B2 */
+.knowledge-navigator {
+  width: min(1040px, calc(100vw - 32px));
+  max-height: min(88vh, 920px);
+  overflow: auto;
+}
+.knowledge-navigator__heading,
+.knowledge-navigator__status,
+.knowledge-navigator__selection-summary,
+.knowledge-navigator__mode,
+.knowledge-navigator__preview-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.knowledge-navigator__heading {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.knowledge-navigator__heading h2 {
+  margin: 4px 0 6px;
+}
+.knowledge-navigator__heading p {
+  margin: 0;
+  max-width: 720px;
+}
+.knowledge-navigator__status,
+.knowledge-navigator__processing,
+.knowledge-navigator__automatic,
+.knowledge-navigator__selection-summary,
+.knowledge-navigator__preview {
+  border: 1px solid var(--border, rgba(255,255,255,.12));
+  border-radius: 14px;
+  padding: 14px;
+  margin: 12px 0;
+}
+.knowledge-navigator__status {
+  align-items: flex-start;
+  flex-direction: column;
+}
+.knowledge-navigator__mode {
+  justify-content: flex-start;
+  margin: 14px 0;
+}
+.knowledge-navigator__active {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.knowledge-navigator__sections {
+  display: grid;
+  gap: 7px;
+  max-height: 390px;
+  overflow: auto;
+  margin: 12px 0;
+}
+.knowledge-navigator__section {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  border-radius: 10px;
+  background: rgba(127,127,127,.06);
+}
+.knowledge-navigator__section > span {
+  display: grid;
+  gap: 3px;
+}
+.knowledge-navigator__section small,
+.knowledge-navigator__boundary {
+  opacity: .72;
+}
+.knowledge-navigator__preview {
+  max-height: 360px;
+  overflow: auto;
+}
+.knowledge-navigator__preview article {
+  margin-top: 14px;
+}
+.knowledge-navigator__preview pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+  font-size: .9rem;
+  line-height: 1.45;
+}
+.personal-knowledge__actions {
+  display: flex;
+  gap: 8px;
+}

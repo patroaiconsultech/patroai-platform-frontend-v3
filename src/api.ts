@@ -451,6 +451,58 @@ export type KnowledgeDocument = {
   supersedes_id?: string | null;
   created_at: string;
   updated_at: string;
+  processing?: KnowledgeProcessing | null;
+};
+
+export type KnowledgeProcessing = {
+  id: string;
+  kind: string;
+  status: "PENDING" | "PROCESSING" | "READY" | "PARTIAL" | "FAILED" | "OCR_REQUIRED" | string;
+  size_bytes?: number | null;
+  sha256?: string | null;
+  source_chars?: number | null;
+  canonical_chars?: number | null;
+  page_count?: number | null;
+  warnings?: string[];
+  extractor?: string | null;
+  extractor_version?: string | null;
+  updated_at?: string | null;
+};
+
+export type KnowledgeSection = {
+  id: string;
+  parent_section_id?: string | null;
+  ordinal: number;
+  heading: string;
+  level: number;
+  page_start?: number | null;
+  page_end?: number | null;
+  estimated_tokens: number;
+  chunk_count: number;
+};
+
+export type KnowledgeSelection = {
+  mode: "AUTO" | "MANUAL";
+  section_ids: string[];
+  updated_at?: string | null;
+};
+
+export type KnowledgeStructure = {
+  knowledge_id: string;
+  logical_document_id: string;
+  title: string;
+  filename: string;
+  derivative?: KnowledgeProcessing | null;
+  sections: KnowledgeSection[];
+  chunk_count: number;
+  selection: KnowledgeSelection;
+};
+
+export type KnowledgeContentPreview = {
+  knowledge_id: string;
+  sections: Array<{ section_id: string; heading: string; content: string }>;
+  provided_chars: number;
+  truncated: boolean;
 };
 
 export type KnowledgeListResponse = {
@@ -534,6 +586,44 @@ export function deleteKnowledge(documentId: string): Promise<{ status: string; i
   return apiJson(
     `/api/v2/knowledge/${encodeURIComponent(documentId)}`,
     { method: "DELETE" },
+  );
+}
+
+export function getKnowledgeStructure(documentId: string): Promise<KnowledgeStructure> {
+  return apiJson<KnowledgeStructure>(
+    `/api/v2/knowledge/${encodeURIComponent(documentId)}/structure`,
+  );
+}
+
+export function processKnowledgeDocument(
+  documentId: string,
+): Promise<{ knowledge_id: string; processing: KnowledgeProcessing }> {
+  return apiJson(
+    `/api/v2/knowledge/${encodeURIComponent(documentId)}/process`,
+    { method: "POST" },
+  );
+}
+
+export function saveKnowledgeSelection(
+  documentId: string,
+  selection: KnowledgeSelection,
+): Promise<KnowledgeSelection> {
+  return apiJson<KnowledgeSelection>(
+    `/api/v2/knowledge/${encodeURIComponent(documentId)}/selection`,
+    { method: "PUT", body: JSON.stringify(selection) },
+  );
+}
+
+export function getKnowledgeContent(
+  documentId: string,
+  sectionIds: string[],
+  maxChars = 40_000,
+): Promise<KnowledgeContentPreview> {
+  const params = new URLSearchParams();
+  params.set("max_chars", String(maxChars));
+  sectionIds.forEach((id) => params.append("section_ids", id));
+  return apiJson<KnowledgeContentPreview>(
+    `/api/v2/knowledge/${encodeURIComponent(documentId)}/content?${params.toString()}`,
   );
 }
 
