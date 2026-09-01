@@ -1,0 +1,289 @@
+--- a/src/admin.css
++++ b/src/admin.css
+@@ -193,6 +193,67 @@
+ .knowledge-governance__boundary { margin:16px 0 0;color:rgba(235,242,238,.46);font-size:12px; }
+ .admin-knowledge-error { padding:12px;border:1px solid rgba(255,109,133,.25);border-radius:12px;color:#ff9bad; }
+ .sr-only { position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important; }
++
++
++.admin-domain-summary {
++  display:flex;
++  flex-wrap:wrap;
++  justify-content:flex-end;
++  gap:8px;
++  align-items:center;
++}
++.admin-domain-summary > span {
++  display:flex;
++  align-items:center;
++  gap:6px;
++  color:var(--admin-muted);
++  font-size:9px;
++  text-transform:none;
++  letter-spacing:.02em;
++}
++.admin-domain-badge {
++  display:inline-flex;
++  align-items:center;
++  gap:5px;
++  border:1px solid rgba(255,255,255,.08);
++  border-radius:999px;
++  padding:4px 7px;
++  font-size:9px;
++  letter-spacing:.03em;
++  line-height:1;
++  vertical-align:middle;
++}
++.admin-domain-badge.is-ok {
++  color:var(--admin-mint);
++  border-color:rgba(120,231,200,.2);
++  background:rgba(120,231,200,.05);
++}
++.admin-domain-badge.is-unavailable {
++  color:#ffb4b4;
++  border-color:rgba(255,137,137,.19);
++  background:rgba(255,110,110,.045);
++}
++.admin-domain-badge.is-loading {
++  color:var(--admin-muted);
++}
++.admin-domain-empty {
++  grid-column:1/-1;
++  display:grid;
++  gap:7px;
++  padding:18px;
++  border:1px dashed rgba(255,142,142,.18);
++  border-radius:14px;
++  background:rgba(255,80,80,.025);
++}
++.admin-domain-empty > strong {
++  font-size:12px;
++}
++.admin-domain-empty > p {
++  margin:0;
++  color:var(--admin-muted);
++  font-size:10px;
++  line-height:1.5;
++}
+ 
+ @media (max-width:1100px) {
+   .admin-ops { grid-template-columns:210px minmax(0,1fr); }
+--- a/src/routes/AdminPanel.tsx
++++ b/src/routes/AdminPanel.tsx
+@@ -28,6 +28,8 @@
+   | "knowledge"
+   | "security";
+ 
++type DomainState = "loading" | "ok" | "unavailable";
++
+ const NAV: Array<{ id: AdminView; label: string; kicker: string }> = [
+   { id: "command", label: "Command Center", kicker: "Operação" },
+   { id: "users", label: "Usuários", kicker: "Acesso" },
+@@ -57,6 +59,11 @@
+   const date = new Date(value);
+   if (Number.isNaN(date.getTime())) return "—";
+   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(date);
++}
++
++function DomainBadge({ state }: { state: DomainState }) {
++  const label = state === "ok" ? "OK" : state === "unavailable" ? "Indisponível" : "Carregando";
++  return <span className={`admin-domain-badge is-${state}`}>{label}</span>;
+ }
+ 
+ export default function AdminPanel() {
+@@ -73,6 +80,17 @@
+   const [query, setQuery] = useState("");
+   const [error, setError] = useState("");
+   const [loading, setLoading] = useState(true);
++  const [domainState, setDomainState] = useState<Record<
++    "overview" | "users" | "agents" | "teams" | "security" | "governance",
++    DomainState
++  >>({
++    overview: "loading",
++    users: "loading",
++    agents: "loading",
++    teams: "loading",
++    security: "loading",
++    governance: "loading",
++  });
+ 
+   useEffect(() => {
+     let active = true;
+@@ -86,7 +104,7 @@
+           return;
+         }
+         const [overview, userRows, catalog, teamCatalog, securityStatus, governanceStatus] =
+-          await Promise.all([
++          await Promise.allSettled([
+             getAdminOverview(),
+             getAdminUsers(),
+             getAdminAgents(),
+@@ -95,12 +113,22 @@
+             getAdminGovernance(),
+           ]);
+         if (!active) return;
+-        setData(overview);
+-        setUsers(userRows);
+-        setAgents(catalog);
+-        setTeams(teamCatalog);
+-        setSecurity(securityStatus);
+-        setGovernance(governanceStatus);
++
++        setDomainState({
++          overview: overview.status === "fulfilled" ? "ok" : "unavailable",
++          users: userRows.status === "fulfilled" ? "ok" : "unavailable",
++          agents: catalog.status === "fulfilled" ? "ok" : "unavailable",
++          teams: teamCatalog.status === "fulfilled" ? "ok" : "unavailable",
++          security: securityStatus.status === "fulfilled" ? "ok" : "unavailable",
++          governance: governanceStatus.status === "fulfilled" ? "ok" : "unavailable",
++        });
++
++        if (overview.status === "fulfilled") setData(overview.value);
++        if (userRows.status === "fulfilled") setUsers(userRows.value);
++        if (catalog.status === "fulfilled") setAgents(catalog.value);
++        if (teamCatalog.status === "fulfilled") setTeams(teamCatalog.value);
++        if (securityStatus.status === "fulfilled") setSecurity(securityStatus.value);
++        if (governanceStatus.status === "fulfilled") setGovernance(governanceStatus.value);
+       } catch {
+         if (active) setError("Não foi possível carregar o centro de operações.");
+       } finally {
+@@ -215,23 +243,23 @@
+                 <section className="admin-kpis" aria-label="Indicadores operacionais">
+                   <article>
+                     <span>Usuários ativos</span>
+-                    <strong>{data?.users ?? "—"}</strong>
+-                    <small>{verifiedUsers} com e-mail verificado</small>
++                    <strong>{domainState.overview === "ok" ? data?.users ?? "—" : "—"}</strong>
++                    <small>{domainState.overview === "ok" ? `${verifiedUsers} com e-mail verificado` : "Overview indisponível"}</small>
+                   </article>
+                   <article>
+                     <span>Conversas</span>
+-                    <strong>{data?.threads ?? "—"}</strong>
+-                    <small>{data?.messages ?? 0} mensagens persistidas</small>
++                    <strong>{domainState.overview === "ok" ? data?.threads ?? "—" : "—"}</strong>
++                    <small>{domainState.overview === "ok" ? `${data?.messages ?? 0} mensagens persistidas` : "Overview indisponível"}</small>
+                   </article>
+                   <article>
+                     <span>Agentes</span>
+-                    <strong>{agents.length}</strong>
+-                    <small>{activeAgents} reportados como disponíveis</small>
++                    <strong>{domainState.agents === "ok" ? agents.length : "—"}</strong>
++                    <small>{domainState.agents === "ok" ? `${activeAgents} reportados como disponíveis` : "Catálogo indisponível"}</small>
+                   </article>
+                   <article>
+                     <span>Teams</span>
+-                    <strong>{teams.length}</strong>
+-                    <small>orquestrações cadastradas</small>
++                    <strong>{domainState.teams === "ok" ? teams.length : "—"}</strong>
++                    <small>{domainState.teams === "ok" ? "orquestrações cadastradas" : "Teams indisponíveis"}</small>
+                   </article>
+                 </section>
+ 
+@@ -242,9 +270,10 @@
+                         <span>SISTEMA</span>
+                         <h2>Estado operacional</h2>
+                       </div>
+-                      <span className="admin-health-pill">
+-                        <i aria-hidden="true" /> Contratos carregados
+-                      </span>
++                      <div className="admin-domain-summary" aria-label="Estado dos contratos operacionais">
++                        <span>Governança <DomainBadge state={domainState.governance} /></span>
++                        <span>Security <DomainBadge state={domainState.security} /></span>
++                      </div>
+                     </div>
+                     <div className="admin-status-grid">
+                       <div><span>Ambiente</span><strong>{governance?.environment || "—"}</strong></div>
+@@ -295,8 +324,8 @@
+               <div className="admin-view">
+                 <section className="admin-toolbar">
+                   <div>
+-                    <span>{users.length} usuários no tenant</span>
+-                    <small>Visualização somente leitura neste baseline.</small>
++                    <span>{domainState.users === "ok" ? `${users.length} usuários no tenant` : "Usuários indisponíveis"}</span>
++                    <small>Visualização somente leitura neste baseline. <DomainBadge state={domainState.users} /></small>
+                   </div>
+                   <label>
+                     <span className="sr-only">Buscar usuário</span>
+@@ -383,6 +412,13 @@
+             {view === "agents" && (
+               <div className="admin-view">
+                 <section className="admin-agent-list">
++                  {domainState.agents !== "ok" && (
++                    <div className="admin-domain-empty">
++                      <DomainBadge state={domainState.agents} />
++                      <strong>Catálogo de agentes indisponível</strong>
++                      <p>Os demais domínios administrativos permanecem utilizáveis.</p>
++                    </div>
++                  )}
+                   {agents.map((agent) => (
+                     <article key={agent.slug} className="admin-agent-row">
+                       <div className="admin-agent-row__identity">
+@@ -427,6 +463,13 @@
+             {view === "teams" && (
+               <div className="admin-view">
+                 <section className="admin-team-grid">
++                  {domainState.teams !== "ok" && (
++                    <div className="admin-domain-empty">
++                      <DomainBadge state={domainState.teams} />
++                      <strong>Teams indisponíveis</strong>
++                      <p>Falha restrita ao domínio de orquestração.</p>
++                    </div>
++                  )}
+                   {teams.map((team) => (
+                     <article className="admin-panel" key={team.team_id}>
+                       <span className="admin-eyebrow">TEAM · {team.team_id}</span>
+@@ -454,6 +497,13 @@
+ 
+             {view === "security" && (
+               <div className="admin-view">
++                {domainState.security !== "ok" && (
++                  <div className="admin-domain-empty">
++                    <DomainBadge state={domainState.security} />
++                    <strong>Security status indisponível</strong>
++                    <p>Usuários, agentes, Teams e demais domínios preservam seus próprios estados.</p>
++                  </div>
++                )}
+                 <section className="admin-kpis admin-kpis--security">
+                   <article><span>Auth mode</span><strong className="admin-kpi-text">{security?.auth_mode || "—"}</strong></article>
+                   <article><span>GitHub readonly</span><strong className="admin-kpi-text">{yesNo(security?.github_read_only)}</strong></article>
+--- a/tests/admin-command-center-resilience.test.mjs
++++ b/tests/admin-command-center-resilience.test.mjs
+@@ -0,0 +1,38 @@
++import test from "node:test";
++import assert from "node:assert/strict";
++import fs from "node:fs";
++
++const admin = fs.readFileSync("src/routes/AdminPanel.tsx", "utf8");
++
++test("admin command center resolves operational domains independently", () => {
++  assert.match(admin, /Promise\.allSettled\(/);
++  for (const domain of ["overview", "users", "agents", "teams", "security", "governance"]) {
++    assert.match(admin, new RegExp(`${domain}: .*status === "fulfilled" \\? "ok" : "unavailable"`));
++  }
++});
++
++test("partial governance failure does not route through the structural access error", () => {
++  assert.match(admin, /if \(governanceStatus\.status === "fulfilled"\) setGovernance\(governanceStatus\.value\)/);
++  assert.match(admin, /DomainBadge state=\{domainState\.governance\}/);
++  assert.match(admin, /getMe\(\)/);
++  assert.match(admin, /!profile\.admin_access/);
++});
++
++test("partial security failure preserves other operational domains", () => {
++  assert.match(admin, /if \(securityStatus\.status === "fulfilled"\) setSecurity\(securityStatus\.value\)/);
++  assert.match(admin, /Security status indisponível/);
++  assert.match(admin, /Usuários, agentes, Teams e demais domínios preservam seus próprios estados/);
++});
++
++test("agent and team sensors degrade locally instead of blacking out the command center", () => {
++  assert.match(admin, /Catálogo de agentes indisponível/);
++  assert.match(admin, /Teams indisponíveis/);
++  assert.match(admin, /domainState\.agents === "ok" \? agents\.length : "—"/);
++  assert.match(admin, /domainState\.teams === "ok" \? teams\.length : "—"/);
++});
++
++test("structural authorization remains fail-closed", () => {
++  assert.match(admin, /setError\("Acesso administrativo não autorizado\."\)/);
++  assert.match(admin, /Não foi possível carregar o centro de operações\./);
++  assert.match(admin, /if \(error\)/);
++});

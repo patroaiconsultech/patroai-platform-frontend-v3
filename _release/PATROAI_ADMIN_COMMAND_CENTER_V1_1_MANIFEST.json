@@ -1,0 +1,45 @@
+{
+  "candidate": "PatroAI Operations Command Center V1.1 — Operational Resilience",
+  "base": "PatroAI Operations Command Center V1",
+  "finding": "ADMIN-OPS-001",
+  "finding_status": "CLOSED_LOCAL_BY_NEGATIVE_TESTS",
+  "scope": {
+    "modified": [
+      "src/admin.css",
+      "src/routes/AdminPanel.tsx"
+    ],
+    "added": [
+      "tests/admin-command-center-resilience.test.mjs"
+    ],
+    "deleted": [],
+    "backend_delta": "NONE",
+    "runtime_write_delta": "NONE"
+  },
+  "behavior": {
+    "structural_auth": "FAIL_CLOSED via getMe/admin_access",
+    "domain_loading": "Promise.allSettled",
+    "domains": [
+      "overview",
+      "users",
+      "agents",
+      "teams",
+      "security",
+      "governance"
+    ],
+    "partial_failure": "preserve fulfilled domains and mark only failed domain unavailable",
+    "health_semantics": "configuration flags remain configuration, not runtime proof"
+  },
+  "validation": {
+    "package_boundary": "PASS",
+    "server_syntax": "PASS",
+    "service_worker_syntax": "PASS",
+    "tests": "372/372 PASS",
+    "build": "NOT_PROVEN - vite: Permission denied"
+  },
+  "governance": {
+    "commit_executed": false,
+    "merge_executed": false,
+    "deploy_executed": false,
+    "migration_executed": false
+  }
+}
