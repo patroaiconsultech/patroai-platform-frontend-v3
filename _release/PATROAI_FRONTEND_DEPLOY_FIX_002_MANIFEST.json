@@ -1,0 +1,39 @@
+{
+  "finding": "FRONTEND-DEPLOY-002",
+  "severity": "P1",
+  "root_cause": "AdminPanel imports canonical admin helpers not exported by deployed src/api.ts",
+  "scope": {
+    "modified": [
+      "src/api.ts"
+    ],
+    "added": [],
+    "deleted": [],
+    "backend_changed": false,
+    "admin_panel_changed": false,
+    "tests_changed": false,
+    "realtime_changed": false,
+    "sse_changed": false,
+    "tenant_changed": false,
+    "ownership_changed": false
+  },
+  "exports_restored": [
+    "AdminUser",
+    "AdminGovernance",
+    "getAdminUsers",
+    "getAdminAgents",
+    "getAdminTeams",
+    "getAdminGovernance"
+  ],
+  "contracts": [
+    "GET /api/v2/admin/users",
+    "GET /api/v2/admin/agents",
+    "GET /api/v2/admin/teams",
+    "GET /api/v2/admin/governance"
+  ],
+  "expected_pipeline_after_apply": [
+    "npm test",
+    "npm run build",
+    "npm run verify:dist",
+    "npm run build:evidence"
+  ]
+}

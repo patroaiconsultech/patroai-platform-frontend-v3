@@ -1472,6 +1472,48 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   return apiJson<AdminOverview>("/api/v2/admin/overview");
 }
 
+export type AdminUser = {
+  user_id: string;
+  email: string;
+  display_name?: string | null;
+  role: string;
+  active: boolean;
+  email_verified: boolean;
+  created_at?: string | null;
+};
+
+export type AdminGovernance = {
+  tenant_id: string;
+  environment: string;
+  release_sha: string;
+  access_gate_enabled: boolean;
+  artifacts_enabled: boolean;
+  realtime_streaming_enabled: boolean;
+  voice_enabled: boolean;
+  llm_primary_provider: string;
+};
+
+export async function getAdminUsers(): Promise<AdminUser[]> {
+  return apiJson<AdminUser[]>("/api/v2/admin/users");
+}
+
+export async function getAdminAgents(): Promise<AgentDefinition[]> {
+  return apiJson<unknown>("/api/v2/admin/agents").then((payload) => {
+    const rows = Array.isArray(payload)
+      ? payload
+      : (asRecord(payload)?.items as unknown[] | undefined) || [];
+    return rows.map(normalizeAgent).filter((agent): agent is AgentDefinition => Boolean(agent));
+  });
+}
+
+export async function getAdminTeams(): Promise<TeamDefinition[]> {
+  return apiJson<TeamDefinition[]>("/api/v2/admin/teams");
+}
+
+export async function getAdminGovernance(): Promise<AdminGovernance> {
+  return apiJson<AdminGovernance>("/api/v2/admin/governance");
+}
+
 
 export type AdminSecurityStatus = {
   auth_mode: string;
