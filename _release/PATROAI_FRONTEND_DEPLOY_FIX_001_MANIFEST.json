@@ -1,0 +1,28 @@
+{
+  "finding": "FRONTEND-DEPLOY-001",
+  "severity": "P1",
+  "root_cause": "stale hyper-cocreator-admin-ux test shipped with new AdminPanel source",
+  "scope": {
+    "modified": [
+      "tests/hyper-cocreator-admin-ux.test.mjs"
+    ],
+    "added": [],
+    "deleted": [],
+    "runtime_source_changed": false,
+    "backend_changed": false,
+    "api_contract_changed": false
+  },
+  "expected_admin_contracts": [
+    "getAdminAgents()",
+    "getAdminTeams()",
+    "getAdminUsers()",
+    "getAdminGovernance()",
+    "getAdminSecurityStatus()",
+    "PAINEL DIGITAL DE OPERAÇÕES"
+  ],
+  "removed_stale_expectations": [
+    "listAgents()",
+    "listTeams()",
+    "Agentes disponíveis para administração"
+  ]
+}

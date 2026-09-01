@@ -19,11 +19,13 @@ test("co-creator can be renamed and ordinary-user target remains canonical orkio
   assert.match(app, /selectedAgent\.slug : "orkio"/);
 });
 
-test("admin panel loads agents teams and security status", () => {
-  assert.match(admin, /listAgents\(\)/);
-  assert.match(admin, /listTeams\(\)/);
+test("admin panel loads canonical admin agents teams users governance and security contracts", () => {
+  assert.match(admin, /getAdminAgents\(\)/);
+  assert.match(admin, /getAdminTeams\(\)/);
+  assert.match(admin, /getAdminUsers\(\)/);
+  assert.match(admin, /getAdminGovernance\(\)/);
   assert.match(admin, /getAdminSecurityStatus\(\)/);
-  assert.match(admin, /Agentes disponíveis para administração/);
+  assert.match(admin, /PAINEL DIGITAL DE OPERAÇÕES/);
 });
 
 test("access portal surfaces access gate configuration failure", () => {
