@@ -4,12 +4,16 @@ import {
   AdminGovernance,
   AdminOverview,
   AdminSecurityStatus,
+  AdminVoiceCatalogEntry,
+  AdminAgentVoiceAssignment,
   AdminUser,
   AgentDefinition,
   getAdminAgents,
   getAdminGovernance,
   getAdminOverview,
   getAdminSecurityStatus,
+  getAdminVoiceCatalog,
+  getAdminAgentVoiceAssignments,
   getAdminTeams,
   getAdminUsers,
   getMe,
@@ -26,6 +30,7 @@ type AdminView =
   | "agents"
   | "teams"
   | "knowledge"
+  | "voices"
   | "security";
 
 type DomainState = "loading" | "ok" | "unavailable";
@@ -37,6 +42,7 @@ const NAV: Array<{ id: AdminView; label: string; kicker: string }> = [
   { id: "agents", label: "Agentes", kicker: "Inteligência" },
   { id: "teams", label: "Teams", kicker: "Orquestração" },
   { id: "knowledge", label: "Knowledge", kicker: "Governança" },
+  { id: "voices", label: "Vozes", kicker: "Catálogo" },
   { id: "security", label: "Security", kicker: "Controles" },
 ];
 
@@ -73,6 +79,8 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [agents, setAgents] = useState<AgentDefinition[]>([]);
   const [teams, setTeams] = useState<TeamDefinition[]>([]);
+  const [voiceCatalog, setVoiceCatalog] = useState<AdminVoiceCatalogEntry[]>([]);
+  const [voiceAssignments, setVoiceAssignments] = useState<AdminAgentVoiceAssignment[]>([]);
   const [security, setSecurity] = useState<AdminSecurityStatus | null>(null);
   const [governance, setGovernance] = useState<AdminGovernance | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -81,13 +89,14 @@ export default function AdminPanel() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [domainState, setDomainState] = useState<Record<
-    "overview" | "users" | "agents" | "teams" | "security" | "governance",
+    "overview" | "users" | "agents" | "teams" | "voices" | "security" | "governance",
     DomainState
   >>({
     overview: "loading",
     users: "loading",
     agents: "loading",
     teams: "loading",
+    voices: "loading",
     security: "loading",
     governance: "loading",
   });
@@ -103,12 +112,14 @@ export default function AdminPanel() {
           setError("Acesso administrativo não autorizado.");
           return;
         }
-        const [overview, userRows, catalog, teamCatalog, securityStatus, governanceStatus] =
+        const [overview, userRows, catalog, teamCatalog, voiceRows, assignmentRows, securityStatus, governanceStatus] =
           await Promise.allSettled([
             getAdminOverview(),
             getAdminUsers(),
             getAdminAgents(),
             getAdminTeams(),
+            getAdminVoiceCatalog(),
+            getAdminAgentVoiceAssignments(),
             getAdminSecurityStatus(),
             getAdminGovernance(),
           ]);
@@ -119,6 +130,7 @@ export default function AdminPanel() {
           users: userRows.status === "fulfilled" ? "ok" : "unavailable",
           agents: catalog.status === "fulfilled" ? "ok" : "unavailable",
           teams: teamCatalog.status === "fulfilled" ? "ok" : "unavailable",
+          voices: voiceRows.status === "fulfilled" && assignmentRows.status === "fulfilled" ? "ok" : "unavailable",
           security: securityStatus.status === "fulfilled" ? "ok" : "unavailable",
           governance: governanceStatus.status === "fulfilled" ? "ok" : "unavailable",
         });
@@ -127,6 +139,8 @@ export default function AdminPanel() {
         if (userRows.status === "fulfilled") setUsers(userRows.value);
         if (catalog.status === "fulfilled") setAgents(catalog.value);
         if (teamCatalog.status === "fulfilled") setTeams(teamCatalog.value);
+        if (voiceRows.status === "fulfilled") setVoiceCatalog(voiceRows.value);
+        if (assignmentRows.status === "fulfilled") setVoiceAssignments(assignmentRows.value);
         if (securityStatus.status === "fulfilled") setSecurity(securityStatus.value);
         if (governanceStatus.status === "fulfilled") setGovernance(governanceStatus.value);
       } catch {
@@ -492,6 +506,43 @@ export default function AdminPanel() {
                 <KnowledgeGovernancePanel
                   isPlatformOwner={Boolean(me?.roles?.includes("platform_owner"))}
                 />
+              </div>
+            )}
+
+            {view === "voices" && (
+              <div className="admin-view">
+                <section className="admin-panel">
+                  <span className="admin-eyebrow">VOICE CATALOG · GOVERNED</span>
+                  <h2>Vozes disponíveis</h2>
+                  <p>Associações manuais permanecem em rascunho até validação independente do provider.</p>
+                  {domainState.voices !== "ok" ? (
+                    <div className="admin-domain-empty"><DomainBadge state={domainState.voices} /><strong>Catálogo indisponível</strong><p>Falha restrita ao domínio de voz.</p></div>
+                  ) : (
+                    <div className="admin-team-grid">
+                      {voiceCatalog.map((voice) => (
+                        <article className="admin-panel" key={voice.id}>
+                          <span className="admin-eyebrow">{voice.provider_key} · {voice.curation_status}</span>
+                          <h3>{voice.display_name}</h3>
+                          <p>{voice.supported_locales.join(", ") || "Locale a validar"}</p>
+                          <small>{voice.cost_class} · {voice.active ? "Catalogada" : "Indisponível"}</small>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </section>
+                <section className="admin-panel">
+                  <span className="admin-eyebrow">ASSOCIATIONS · DRAFT FIRST</span>
+                  <h2>Vínculos por agente</h2>
+                  {voiceAssignments.length === 0 ? <p>Nenhuma associação criada. Selecione uma voz elegível no fluxo governado de associação.</p> : (
+                    <div className="admin-team-grid">{voiceAssignments.map((assignment) => (
+                      <article className="admin-panel" key={assignment.id}>
+                        <span className="admin-eyebrow">{assignment.assignment_state} · {assignment.validation_status}</span>
+                        <h3>{assignment.agent_slug}</h3>
+                        <p>{assignment.voice_display_name} · {assignment.presentation_label}</p>
+                      </article>
+                    ))}</div>
+                  )}
+                </section>
               </div>
             )}
 

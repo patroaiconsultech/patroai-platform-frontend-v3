@@ -1596,6 +1596,64 @@ export async function getAdminAgents(): Promise<AgentDefinition[]> {
   });
 }
 
+export type AdminVoiceCatalogEntry = {
+  id: string;
+  provider_key: string;
+  display_name: string;
+  provider_model: string;
+  source_type: string;
+  license_label: string;
+  cost_class: "API_USAGE_BILLED" | "SELF_HOSTED_INFRA_COST" | "LICENSE_REVIEW_REQUIRED";
+  provenance_url?: string | null;
+  supported_locales: string[];
+  delivery_modes: string[];
+  curation_status: "APPROVED" | "REVIEW_REQUIRED" | "DISABLED" | "EXCLUDED";
+  active: boolean;
+  catalog_version: string;
+};
+
+export type AdminAgentVoiceAssignment = {
+  id: string;
+  agent_slug: string;
+  voice_catalog_id: string;
+  voice_display_name: string;
+  provider_key: string;
+  locale: string;
+  delivery_modes: string[];
+  presentation_label: "MASCULINA" | "FEMININA" | "NEUTRA" | "NAO_DEFINIDA";
+  timbre_label?: string | null;
+  energy_label?: string | null;
+  assignment_state: "DRAFT" | "ACTIVE" | "DISABLED";
+  validation_status: "UNVALIDATED" | "VALIDATED" | "FAILED";
+  version: number;
+  updated_at?: string | null;
+};
+
+export async function getAdminVoiceCatalog(): Promise<AdminVoiceCatalogEntry[]> {
+  return apiJson<AdminVoiceCatalogEntry[]>("/api/v2/admin/voice-catalog");
+}
+
+export async function getAdminAgentVoiceAssignments(): Promise<AdminAgentVoiceAssignment[]> {
+  return apiJson<AdminAgentVoiceAssignment[]>("/api/v2/admin/agent-voice-assignments");
+}
+
+export async function updateAdminAgentVoiceAssignment(
+  agentSlug: string,
+  input: {
+    voice_catalog_id: string;
+    locale: string;
+    delivery_modes: Array<"REALTIME_STREAM" | "MESSAGE_PLAYBACK" | "VOICE_MESSAGE">;
+    presentation_label: "MASCULINA" | "FEMININA" | "NEUTRA" | "NAO_DEFINIDA";
+    timbre_label?: string | null;
+    energy_label?: string | null;
+  },
+): Promise<AdminAgentVoiceAssignment> {
+  return apiJson<AdminAgentVoiceAssignment>(
+    `/api/v2/admin/agents/${encodeURIComponent(agentSlug)}/voice-assignment`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
 export async function getAdminTeams(): Promise<TeamDefinition[]> {
   return apiJson<TeamDefinition[]>("/api/v2/admin/teams");
 }
