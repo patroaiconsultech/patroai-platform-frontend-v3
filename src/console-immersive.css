@@ -278,8 +278,19 @@
   animation: patroai-avatar-scan 1.65s ease-in-out infinite;
 }
 
-.immersive-presence[data-state="speaking"] .realtime-avatar__core {
-  animation: patroai-avatar-speaking .76s ease-in-out infinite;
+.immersive-presence[data-state="speaking"] .realtime-avatar__core--reactive {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scale(calc(1 + (var(--avatar-speech-level, 0) * .22)));
+  filter: brightness(calc(1 + (var(--avatar-speech-level, 0) * .5)))
+    drop-shadow(0 0 calc(5px + (var(--avatar-speech-level, 0) * 11px)) rgba(246,196,83,.68));
+}
+
+.immersive-presence[data-state="speaking"] .realtime-avatar__mouth--reactive {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleY(calc(1 + (var(--avatar-speech-level, 0) * 2.6)));
+  filter: drop-shadow(0 0 calc(2px + (var(--avatar-speech-level, 0) * 5px)) rgba(55,197,255,.55));
 }
 
 .immersive-presence[data-state="speaking"] .realtime-avatar__signal {
@@ -577,5 +588,163 @@
   .realtime-avatar__scanline,
   .presence-wave i {
     animation: none !important;
+  }
+}
+
+
+/* Premium Realtime Presence — progressive 2.5D layer */
+.realtime-avatar__portrait {
+  transform: translateZ(18px);
+}
+.realtime-avatar__head {
+  filter: drop-shadow(0 0 9px rgba(55,197,255,.10));
+}
+.realtime-avatar__visor {
+  filter: drop-shadow(0 0 5px rgba(55,197,255,.18));
+}
+.immersive-presence[data-state="speaking"] .realtime-avatar__aura {
+  opacity: calc(.68 + (var(--avatar-speech-level, 0) * .28));
+}
+.immersive-presence[data-state="speaking"] .presence-wave i {
+  animation-duration: calc(.72s - (var(--avatar-speech-level, 0) * .24s));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .immersive-presence[data-state="speaking"] .realtime-avatar__mouth--reactive,
+  .immersive-presence[data-state="speaking"] .realtime-avatar__core--reactive {
+    transform: none;
+    filter: none;
+  }
+}
+
+
+/* Console Premium CP1-A — bounded viewport, thread-only scroll, intelligent follow */
+.console-shell--immersive {
+  height: 100svh;
+  min-height: 100svh;
+}
+
+.console-shell--immersive .console-main {
+  position: relative;
+  height: calc(100svh - 20px);
+  min-height: 0;
+  max-height: calc(100svh - 20px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.console-shell--immersive .thread-viewport {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.console-shell--immersive .thread {
+  height: 100%;
+  min-height: 0;
+  overscroll-behavior: contain;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.console-shell--immersive .composer {
+  position: relative;
+  z-index: 32;
+  flex: 0 0 auto;
+}
+
+.thread-end-sentinel {
+  width: 1px;
+  height: 1px;
+  flex: 0 0 auto;
+}
+
+.jump-to-end {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 35;
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 7px;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border: 1px solid rgba(55,197,255,.28);
+  border-radius: 999px;
+  background: rgba(7,17,25,.94);
+  color: #dff7ff;
+  box-shadow: 0 14px 36px rgba(0,0,0,.30), 0 0 24px rgba(55,197,255,.07);
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+}
+
+.copy-turn-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid rgba(55,197,255,.20);
+  border-radius: 12px;
+  background: rgba(55,197,255,.045);
+  color: #ccecf8;
+  cursor: pointer;
+}
+
+.copy-turn-button:disabled {
+  cursor: not-allowed;
+  opacity: .38;
+}
+
+.message__meta time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .console-shell--immersive {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .console-shell--immersive .console-main {
+    height: calc(100dvh - 14px);
+    min-height: 0;
+    max-height: calc(100dvh - 14px);
+    margin: 7px;
+  }
+
+  .console-shell--immersive .thread {
+    padding-bottom: 22px;
+  }
+
+  .console-shell--immersive .composer {
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .console-header__actions > .copy-turn-button {
+    display: inline-grid;
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    place-items: center;
+  }
+
+  .copy-turn-button__label {
+    display: none;
+  }
+
+  .jump-to-end {
+    bottom: 10px;
+  }
+
+  .message__meta {
+    gap: 8px;
+  }
+
+  .message__meta time {
+    font-size: .68rem;
   }
 }

@@ -20,6 +20,7 @@ type Props = {
   realtimeBusy: boolean;
   voiceState: VoiceState;
   voiceReady: boolean;
+  speechLevel?: number;
   runtimeProven: boolean;
   ownershipLocked: boolean;
   onRealtimeToggle: () => void;
@@ -29,18 +30,16 @@ type Props = {
 
 function presenceState(
   realtimeState: RealtimeState,
-  voiceState: VoiceState,
 ): RealtimeAvatarState {
   if (realtimeState === "error") return "error";
   if (realtimeState === "speaking") return "speaking";
   if (
     realtimeState === "orkio_processing" ||
-    realtimeState === "transcribing" ||
-    voiceState === "transcribing"
+    realtimeState === "transcribing"
   ) {
     return "thinking";
   }
-  if (realtimeState === "listening" || voiceState === "recording") {
+  if (realtimeState === "listening") {
     return "listening";
   }
   return "ready";
@@ -77,13 +76,14 @@ export default function ImmersivePresencePanel({
   realtimeBusy,
   voiceState,
   voiceReady,
+  speechLevel = 0,
   runtimeProven,
   ownershipLocked,
   onRealtimeToggle,
   onVoiceToggle,
   onShowRealtimeStatus,
 }: Props) {
-  const state = presenceState(realtimeState, voiceState);
+  const state = presenceState(realtimeState);
   const realtimeActive = !["idle", "error"].includes(realtimeState);
   const copy = stateCopy[state];
 
@@ -129,7 +129,11 @@ export default function ImmersivePresencePanel({
       </header>
 
       <div className="immersive-presence__stage">
-        <RealtimeAvatar state={state} agentName={agentName} />
+        <RealtimeAvatar
+          state={state}
+          agentName={agentName}
+          speechLevel={state === "speaking" ? speechLevel : 0}
+        />
       </div>
 
       <section className="immersive-presence__runtime" aria-live="polite">

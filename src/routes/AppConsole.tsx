@@ -247,6 +247,8 @@ export default function AppConsole() {
   const [renameThreadBusy, setRenameThreadBusy] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
+  const [showJumpToEnd, setShowJumpToEnd] = useState(false);
+  const [copyTurnStatus, setCopyTurnStatus] = useState<"idle" | "copied" | "error">("idle");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
@@ -274,6 +276,7 @@ export default function AppConsole() {
   const [realtimeBusy, setRealtimeBusy] = useState(false);
   const [showRealtimeInfo, setShowRealtimeInfo] = useState(false);
   const [realtimeState, setRealtimeState] = useState<RealtimeState>("idle");
+  const [realtimeSpeechLevel, setRealtimeSpeechLevel] = useState(0);
   const [teamSelectionMode, setTeamSelectionMode] =
     useState<"explicit" | "all_eligible">("explicit");
   const [documentProvenanceLabel, setDocumentProvenanceLabel] = useState("");
@@ -292,6 +295,10 @@ export default function AppConsole() {
   const [voiceElapsed, setVoiceElapsed] = useState(0);
 
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const threadRef = useRef<HTMLElement | null>(null);
+  const autoFollowRef = useRef(true);
+  const scrollFrameRef = useRef<number | null>(null);
+  const copyStatusTimerRef = useRef<number | null>(null);
   const knowledgeDestinationRef = useRef<KnowledgeDestination>("THREAD");
   const abortRef = useRef<AbortController | null>(null);
   const voiceRecorderRef = useRef<MediaRecorder | null>(null);
@@ -319,6 +326,9 @@ export default function AppConsole() {
     Array<{ blob: Blob; codec: string; segmentNumber: number }>
   >([]);
   const realtimeSegmentPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const realtimeAnalysisFrameRef = useRef<number | null>(null);
+  const realtimeAnalysisGenerationRef = useRef(0);
+  const realtimeAnalysisLastPaintRef = useRef(0);
   const realtimeSegmentUrlRef = useRef("");
   const realtimeAudioLifecycleRef = useRef(0);
   const realtimeOutputAbortRef = useRef<AbortController | null>(null);
@@ -339,10 +349,107 @@ export default function AppConsole() {
   }
 
   function scrollConversationToTop() {
-    document.querySelector<HTMLElement>(".thread")?.scrollTo({
+    threadRef.current?.scrollTo({
       top: 0,
       behavior: "smooth",
     });
+  }
+
+  function isThreadNearEnd(element: HTMLElement, threshold = 128): boolean {
+    return element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+  }
+
+  function scrollConversationToEnd(behavior: ScrollBehavior = "smooth") {
+    const element = threadRef.current;
+    if (!element) return;
+    autoFollowRef.current = true;
+    setShowJumpToEnd(false);
+    element.scrollTo({ top: element.scrollHeight, behavior });
+  }
+
+  function scheduleConversationToEnd(behavior: ScrollBehavior = "auto") {
+    if (!autoFollowRef.current) return;
+    if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current);
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      scrollConversationToEnd(behavior);
+    });
+  }
+
+  function handleThreadScroll() {
+    const element = threadRef.current;
+    if (!element) return;
+    const nearEnd = isThreadNearEnd(element);
+    autoFollowRef.current = nearEnd;
+    setShowJumpToEnd(!nearEnd);
+  }
+
+  function lastCompleteTurn(
+    items: ChatMessage[],
+  ): { user: ChatMessage; agents: ChatMessage[] } | null {
+    let activeUser: ChatMessage | null = null;
+    let activeAgents: ChatMessage[] = [];
+    let last: { user: ChatMessage; agents: ChatMessage[] } | null = null;
+
+    for (const item of items) {
+      if (item.author_type === "user") {
+        if (activeUser && activeAgents.length > 0) {
+          last = { user: activeUser, agents: activeAgents };
+        }
+        activeUser = item;
+        activeAgents = [];
+      } else if (activeUser) {
+        activeAgents.push(item);
+      }
+    }
+
+    if (activeUser && activeAgents.length > 0) {
+      last = { user: activeUser, agents: activeAgents };
+    }
+    return last;
+  }
+
+  async function writeClipboardText(text: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const fallback = document.createElement("textarea");
+    fallback.value = text;
+    fallback.setAttribute("readonly", "");
+    fallback.style.position = "fixed";
+    fallback.style.opacity = "0";
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied = document.execCommand("copy");
+    fallback.remove();
+    if (!copied) throw new Error("CLIPBOARD_WRITE_FAILED");
+  }
+
+  async function handleCopyLastCompleteTurn() {
+    if (sending || loading || streamingText) return;
+    const turn = lastCompleteTurn(messages);
+    if (!turn) return;
+
+    const agentText = turn.agents
+      .map((item) => `${visibleAgentAuthor(item.agent_name)}:\n${item.content.trim()}`)
+      .join("\n\n");
+    const text = `Você:\n${turn.user.content.trim()}\n\n${agentText}`;
+
+    try {
+      await writeClipboardText(text);
+      setCopyTurnStatus("copied");
+    } catch {
+      setCopyTurnStatus("error");
+    }
+    if (copyStatusTimerRef.current !== null) {
+      window.clearTimeout(copyStatusTimerRef.current);
+    }
+    copyStatusTimerRef.current = window.setTimeout(() => {
+      setCopyTurnStatus("idle");
+      copyStatusTimerRef.current = null;
+    }, 1800);
   }
 
   const selectThread = useCallback((id: string) => {
@@ -358,6 +465,9 @@ export default function AppConsole() {
     setMessages([]);
     setLoading(false);
     setStreamingText("");
+    autoFollowRef.current = true;
+    setShowJumpToEnd(false);
+    setCopyTurnStatus("idle");
     setRecentAttachment("");
     setDocumentProvenanceLabel("");
     setArtifacts([]);
@@ -564,7 +674,29 @@ export default function AppConsole() {
   }, [refreshMessages]);
 
   useEffect(() => {
+    if (!threadId) return;
+    scheduleConversationToEnd("auto");
+  }, [threadId, messages.length]);
+
+  useEffect(() => {
+    if (!streamingText) return;
+    if (autoFollowRef.current) {
+      scheduleConversationToEnd("auto");
+    } else {
+      setShowJumpToEnd(true);
+    }
+  }, [streamingText]);
+
+  useEffect(() => {
     return () => {
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+      if (copyStatusTimerRef.current !== null) {
+        window.clearTimeout(copyStatusTimerRef.current);
+        copyStatusTimerRef.current = null;
+      }
       abortRef.current?.abort();
       voiceSessionRef.current += 1;
       voiceAbortRef.current?.abort();
@@ -859,8 +991,85 @@ export default function AppConsole() {
     setSpeakingMessageId("");
   }
 
+  function stopRealtimeAudioAnalysis() {
+    realtimeAnalysisGenerationRef.current += 1;
+    if (realtimeAnalysisFrameRef.current !== null) {
+      cancelAnimationFrame(realtimeAnalysisFrameRef.current);
+      realtimeAnalysisFrameRef.current = null;
+    }
+    realtimeAnalysisLastPaintRef.current = 0;
+    setRealtimeSpeechLevel(0);
+  }
+
+  async function startRealtimeAudioAnalysis(blob: Blob, audio: HTMLAudioElement) {
+    // The audible HTMLAudioElement remains completely outside Web Audio.
+    // We decode a copy of the blob only for visualization, so analysis failure
+    // cannot reroute, disconnect, pause, or mute canonical playback.
+    stopRealtimeAudioAnalysis();
+    const generation = realtimeAnalysisGenerationRef.current;
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextCtor) return;
+
+    let context: AudioContext | null = null;
+    try {
+      context = new AudioContextCtor();
+      const encoded = await blob.arrayBuffer();
+      const decoded = await context.decodeAudioData(encoded.slice(0));
+      await context.close().catch(() => undefined);
+      context = null;
+
+      if (generation !== realtimeAnalysisGenerationRef.current) return;
+      const channel = decoded.getChannelData(0);
+      const sampleRate = decoded.sampleRate;
+      const windowSamples = Math.max(96, Math.floor(sampleRate * 0.024));
+      let envelope = 0;
+
+      const paint = (timestamp: number) => {
+        if (generation !== realtimeAnalysisGenerationRef.current) return;
+
+        const center = Math.max(
+          0,
+          Math.min(channel.length - 1, Math.floor(audio.currentTime * sampleRate)),
+        );
+        const startSample = Math.max(0, center - Math.floor(windowSamples / 2));
+        const endSample = Math.min(channel.length, startSample + windowSamples);
+        let sum = 0;
+        let count = 0;
+        for (let index = startSample; index < endSample; index += 1) {
+          const sample = channel[index] ?? 0;
+          sum += sample * sample;
+          count += 1;
+        }
+
+        const rms = count > 0 ? Math.sqrt(sum / count) : 0;
+        const normalized = Math.max(0, Math.min(1, (rms - 0.018) / 0.20));
+        const coefficient = normalized > envelope ? 0.58 : 0.18;
+        envelope += (normalized - envelope) * coefficient;
+
+        if (timestamp - realtimeAnalysisLastPaintRef.current >= 48) {
+          realtimeAnalysisLastPaintRef.current = timestamp;
+          setRealtimeSpeechLevel(envelope);
+        }
+        realtimeAnalysisFrameRef.current = requestAnimationFrame(paint);
+      };
+
+      realtimeAnalysisFrameRef.current = requestAnimationFrame(paint);
+    } catch {
+      if (context && context.state !== "closed") {
+        void context.close().catch(() => undefined);
+      }
+      // Visualization is optional. Canonical HTMLAudioElement playback is untouched.
+      if (generation === realtimeAnalysisGenerationRef.current) {
+        setRealtimeSpeechLevel(0);
+      }
+    }
+  }
+
   function stopRealtimeSegmentAudio() {
     realtimeAudioLifecycleRef.current += 1;
+    stopRealtimeAudioAnalysis();
     realtimeSegmentQueueRef.current = [];
     const audio = realtimeSegmentPlayerRef.current;
     if (audio) {
@@ -905,6 +1114,7 @@ export default function AppConsole() {
     setRealtimeState("speaking");
 
     const cleanup = () => {
+      stopRealtimeAudioAnalysis();
       if (realtimeSegmentPlayerRef.current === audio) {
         realtimeSegmentPlayerRef.current = null;
       }
@@ -926,6 +1136,7 @@ export default function AppConsole() {
     };
     try {
       await audio.play();
+      void startRealtimeAudioAnalysis(next.blob, audio);
     } catch (err) {
       cleanup();
       if (lifecycleId !== realtimeLifecycleRef.current) return;
@@ -1432,6 +1643,8 @@ export default function AppConsole() {
 
     setError("");
     setNotice("");
+    autoFollowRef.current = true;
+    setShowJumpToEnd(false);
     setSending(true);
     setStreamingText("");
     const optimistic: ChatMessage = {
@@ -1981,6 +2194,28 @@ export default function AppConsole() {
             </button>
             <button
               type="button"
+              className="copy-turn-button"
+              onClick={() => void handleCopyLastCompleteTurn()}
+              disabled={
+                sending ||
+                loading ||
+                Boolean(streamingText) ||
+                !lastCompleteTurn(messages)
+              }
+              aria-label="Copiar último turno completo"
+              title="Copiar última pergunta e resposta completas"
+            >
+              <span aria-hidden="true">⧉</span>
+              <span className="copy-turn-button__label">
+                {copyTurnStatus === "copied"
+                  ? "Copiado"
+                  : copyTurnStatus === "error"
+                    ? "Falhou"
+                    : "Copiar turno"}
+              </span>
+            </button>
+            <button
+              type="button"
               className={`realtime-button realtime-button--${realtimeState} ${
                 realtimeReady ? "realtime-button--ready" : "realtime-button--pending"
               }`}
@@ -2101,10 +2336,13 @@ export default function AppConsole() {
           </p>
         ) : null}
 
+        <div className="thread-viewport">
         <section
+          ref={threadRef}
           className="thread"
           aria-label="Conversa"
           aria-busy={loading || sending}
+          onScroll={handleThreadScroll}
         >
           {loading && messages.length === 0 ? (
             <div className="thread-state" role="status">
@@ -2178,15 +2416,13 @@ export default function AppConsole() {
               <SafeMarkdown content={streamingText} />
             </article>
           ) : null}
-        </section>
-
-        {artifacts.length > 0 ? (
-          <section
+          {artifacts.length > 0 ? (
+            <section
             className="artifact-delivery"
             aria-label="Arquivos gerados nesta sessão"
             aria-live="polite"
           >
-            {artifacts.map((artifact) => (
+              {artifacts.map((artifact) => (
               <ArtifactCard
                 key={artifact.artifact_id}
                 artifact={artifact}
@@ -2195,8 +2431,22 @@ export default function AppConsole() {
                 onDownload={(item) => void handleArtifactDownload(item)}
               />
             ))}
-          </section>
+            </section>
         ) : null}
+
+          <div className="thread-end-sentinel" aria-hidden="true" />
+        </section>
+        {showJumpToEnd ? (
+          <button
+            type="button"
+            className="jump-to-end"
+            onClick={() => scrollConversationToEnd("smooth")}
+          >
+            <span aria-hidden="true">↓</span>
+            Ir para o fim
+          </button>
+        ) : null}
+        </div>
 
         <footer className="composer">
           <div className="composer__status" aria-live="polite">
@@ -2346,6 +2596,7 @@ export default function AppConsole() {
         </footer>
       </main>
 
+      {realtimeState !== "idle" ? (
       <ImmersivePresencePanel
         agentName={selectedAgentName}
         agentRole={selectedAgentRole}
@@ -2354,6 +2605,7 @@ export default function AppConsole() {
         realtimeBusy={realtimeBusy}
         voiceState={voiceState}
         voiceReady={Boolean(authenticated && configured && threadId)}
+        speechLevel={realtimeSpeechLevel}
         runtimeProven={Boolean(realtimeCapabilities?.runtime_proven)}
         ownershipLocked={Boolean(threadId)}
         onRealtimeToggle={handleRealtimeButton}
@@ -2363,6 +2615,7 @@ export default function AppConsole() {
           void refreshRealtimeCapabilities();
         }}
       />
+      ) : null}
 
       {showRenameThread ? (
         <div className="modal" role="presentation">

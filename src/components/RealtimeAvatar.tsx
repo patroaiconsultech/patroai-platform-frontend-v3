@@ -10,15 +10,26 @@ export type RealtimeAvatarState =
 type Props = {
   state: RealtimeAvatarState;
   agentName: string;
+  speechLevel?: number;
 };
 
-export default function RealtimeAvatar({ state, agentName }: Props) {
+export default function RealtimeAvatar({
+  state,
+  agentName,
+  speechLevel = 0,
+}: Props) {
+  const safeSpeechLevel = Math.max(0, Math.min(1, speechLevel));
+  const avatarStyle = {
+    "--avatar-speech-level": safeSpeechLevel,
+  } as React.CSSProperties;
+
   return (
     <div
       className="realtime-avatar"
       data-state={state}
       role="img"
       aria-label={`Avatar de ${agentName}: ${state}`}
+      style={avatarStyle}
     >
       <span className="realtime-avatar__aura" aria-hidden="true" />
       <span className="realtime-avatar__orbit realtime-avatar__orbit--outer" aria-hidden="true" />
@@ -96,13 +107,29 @@ export default function RealtimeAvatar({ state, agentName }: Props) {
           />
           <path
             className="realtime-avatar__face-line"
-            d="M110 123v24m-15 12c9 7 21 7 30 0"
+            d="M110 123v24"
             fill="none"
             stroke="rgba(246,196,83,.38)"
             strokeLinecap="round"
           />
+          <g
+            className="realtime-avatar__mouth realtime-avatar__mouth--reactive"
+            fill="none"
+            strokeLinecap="round"
+          >
+            <path
+              d="M95 158c9 6 21 6 30 0"
+              stroke="rgba(246,196,83,.52)"
+              strokeWidth="1.4"
+            />
+            <path
+              d="M97 162c8 4 18 4 26 0"
+              stroke="rgba(55,197,255,.46)"
+              strokeWidth="1.1"
+            />
+          </g>
           <circle
-            className="realtime-avatar__core"
+            className="realtime-avatar__core realtime-avatar__core--reactive"
             cx="110"
             cy="238"
             r="16"

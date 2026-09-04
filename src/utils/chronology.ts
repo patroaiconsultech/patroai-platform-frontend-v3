@@ -3,6 +3,14 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 });
 
+const messageDateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
   day: "2-digit",
   month: "short",
@@ -24,7 +32,11 @@ function dayKey(date: Date): string {
 
 export function formatMessageTimestamp(value: string): string {
   const date = parseTimestamp(value);
-  return date ? timeFormatter.format(date) : "Horário indisponível";
+  if (!date) return "Horário indisponível";
+  const parts = messageDateTimeFormatter.formatToParts(date);
+  const pick = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value || "";
+  return `${pick("day")}/${pick("month")}/${pick("year")} · ${pick("hour")}:${pick("minute")}`;
 }
 
 export function formatConversationTimestamp(
