@@ -10,7 +10,10 @@ const api = fs.readFileSync("src/api.ts", "utf8");
 test("ordinary user remains single Hyper Co-Criador while admin may open internal agent catalog", () => {
   assert.match(app, /me\?\.admin_access && showAgents \? \(/);
   assert.match(app, /onClick=\{\(\) => setShowAgents\(true\)\}/);
-  assert.match(app, /me\?\.admin_access && selectedAgent\?\.slug \? selectedAgent\.slug : "orkio"/);
+  assert.match(
+    app,
+    /me\?\.admin_access && selectedAgent\?\.slug \? selectedAgent\.slug : "orkio"/,
+  );
 });
 
 test("co-creator can be renamed and ordinary-user target remains canonical orkio", () => {
@@ -35,25 +38,38 @@ test("access portal surfaces access gate configuration failure", () => {
 
 test("persisted agent authorship remains canonical regardless of current Hyper selection", () => {
   assert.doesNotMatch(app, /const AGENT = "Josué"/);
+
+  const visibleAuthorMatch = app.match(
+    /const visibleAgentAuthor = \(itemAgentName\?: string \| null\) =>\s*([\s\S]*?);/,
+  );
+
+  assert.ok(visibleAuthorMatch);
   assert.match(
-    app,
-    /const visibleAgentAuthor = \(itemAgentName\?: string \| null\) =>[\s\S]*itemAgentName\?\.trim\(\) \|\| "Agente"/,
+    visibleAuthorMatch[1],
+    /itemAgentName\?\.trim\(\) \|\| "Agente"/,
   );
   assert.doesNotMatch(
-    app,
-    /const visibleAgentAuthor = \(itemAgentName\?: string \| null\) =>[\s\S]*me\?\.admin_access/,
+    visibleAuthorMatch[1],
+    /me\?\.admin_access/,
   );
   assert.doesNotMatch(
-    app,
-    /const visibleAgentAuthor = \(itemAgentName\?: string \| null\) =>[\s\S]*selectedAgentName/,
+    visibleAuthorMatch[1],
+    /selectedAgentName/,
   );
+
   assert.match(app, /\{executionTargetName\}/);
 });
 
 test("admin catalog is role-aware and explicit agent selection is wired to the stream target", () => {
-  assert.match(app, /setAgents\(me\?\.admin_access \? catalog : hyper \? \[hyper\] : \[\]\)/);
+  assert.match(
+    app,
+    /setAgents\(me\?\.admin_access \? catalog : hyper \? \[hyper\] : \[\]\)/,
+  );
   assert.match(app, /setSelectedAgent\(agent\)/);
-  assert.match(app, /technicalAgentTarget\([\s\S]*selectedAgent\?\.slug[\s\S]*"orkio"/);
+  assert.match(
+    app,
+    /technicalAgentTarget\([\s\S]*selectedAgent\?\.slug[\s\S]*"orkio"/,
+  );
   assert.match(app, /Selecionar formação Team governada/);
   assert.match(app, /disabled=\{!accountReady\}/);
 });
