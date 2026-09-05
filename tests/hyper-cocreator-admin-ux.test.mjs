@@ -33,11 +33,20 @@ test("access portal surfaces access gate configuration failure", () => {
   assert.match(access, /ACCESS_CODE_INVALID/);
 });
 
-
-test("Hyper visible identity stays personalized while explicit admin specialist keeps specialist authorship", () => {
+test("persisted agent authorship remains canonical regardless of current Hyper selection", () => {
   assert.doesNotMatch(app, /const AGENT = "Josué"/);
-  assert.match(app, /const hyperSelected =[\s\S]*selectedAgent\.slug\.toLowerCase\(\) === "orkio"/);
-  assert.match(app, /me\?\.admin_access && !hyperSelected[\s\S]*itemAgentName[\s\S]*selectedAgentName/);
+  assert.match(
+    app,
+    /const visibleAgentAuthor = \(itemAgentName\?: string \| null\) =>[\s\S]*itemAgentName\?\.trim\(\) \|\| "Agente"/,
+  );
+  assert.doesNotMatch(
+    app,
+    /const visibleAgentAuthor = \(itemAgentName\?: string \| null\) =>[\s\S]*me\?\.admin_access/,
+  );
+  assert.doesNotMatch(
+    app,
+    /const visibleAgentAuthor = \(itemAgentName\?: string \| null\) =>[\s\S]*selectedAgentName/,
+  );
   assert.match(app, /\{executionTargetName\}/);
 });
 
