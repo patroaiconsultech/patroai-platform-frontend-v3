@@ -1943,9 +1943,7 @@ export default function AppConsole() {
   const hyperSelected =
     !selectedAgent || selectedAgent.slug.toLowerCase() === "orkio";
   const visibleAgentAuthor = (itemAgentName?: string | null) =>
-    me?.admin_access && !hyperSelected
-      ? itemAgentName || selectedAgent?.display_name || selectedAgentName
-      : selectedAgentName;
+    itemAgentName?.trim() || "Agente";
   const selectedAgentRole =
     "Hyper Co-Criador · Estratégia, criatividade e execução de negócios";
   const selectedAgentInitial = selectedAgentName.slice(0, 1).toUpperCase();
