@@ -1018,3 +1018,111 @@
     margin-bottom: max(8px, env(safe-area-inset-bottom));
   }
 }
+
+
+/* ORKIO UX Foundation — CP4 console framing hard-stop
+   Corrects the remaining right-edge escape observed at ~1365px viewport.
+   Presentation-only: no routing, auth, SSE, ownership, persistence or API contracts change. */
+.console-shell--immersive,
+.console-shell--immersive .console-main,
+.console-shell--immersive .thread-viewport,
+.console-shell--immersive .thread,
+.console-shell--immersive .message,
+.console-shell--immersive .message-markdown,
+.console-shell--immersive .composer,
+.console-shell--immersive .composer__row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.console-shell--immersive .console-main {
+  margin-right: 0;
+  overflow-x: hidden;
+}
+
+.console-shell--immersive .thread-viewport,
+.console-shell--immersive .thread {
+  overflow-x: hidden;
+}
+
+.console-shell--immersive .message {
+  width: min(var(--console-reading-max), 100%);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.console-shell--immersive .message.user {
+  margin-left: auto;
+}
+
+.console-shell--immersive .message.agent {
+  margin-right: auto;
+}
+
+.console-shell--immersive .message-markdown,
+.console-shell--immersive .message-markdown > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.console-shell--immersive .message-markdown {
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.console-shell--immersive .message-markdown pre,
+.console-shell--immersive .message-markdown code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.console-shell--immersive .message-markdown pre {
+  overflow-x: auto;
+}
+
+.console-shell--immersive .composer,
+.console-shell--immersive .composer__row,
+.console-shell--immersive .composer textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.console-shell--immersive .composer {
+  width: auto;
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+@media (min-width: 1180px) and (max-width: 1519px) {
+  .console-shell--immersive .console-main {
+    margin-right: 0;
+  }
+
+  .console-shell--immersive .ghost-link {
+    display: none;
+  }
+
+  .console-shell--immersive .console-header {
+    overflow: hidden;
+  }
+
+  .console-shell--immersive .console-header__actions {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .console-shell--immersive .message {
+    width: 100%;
+  }
+
+  .console-shell--immersive .composer {
+    width: auto;
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+}
