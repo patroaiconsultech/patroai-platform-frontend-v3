@@ -1126,3 +1126,111 @@
     margin-right: 8px;
   }
 }
+
+
+/* ORKIO UX Foundation — CP5 viewport frame invariant
+   The shell must reserve an outer right gutter instead of letting the main panel
+   terminate exactly at the viewport edge. This is independent of browser zoom /
+   media-query breakpoint selection. Presentation-only. */
+.console-shell--immersive {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-right: 10px;
+  overflow-x: hidden;
+}
+
+.console-shell--immersive .console-main {
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  margin-right: 0;
+  box-sizing: border-box;
+}
+
+.console-shell--immersive .thread-viewport,
+.console-shell--immersive .thread {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.console-shell--immersive .message {
+  width: auto;
+  max-width: min(var(--console-reading-max), calc(100% - 2px));
+  box-sizing: border-box;
+}
+
+.console-shell--immersive .message.user {
+  align-self: flex-end;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.console-shell--immersive .message.agent {
+  align-self: flex-start;
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Long audit/runtime payloads must never establish an intrinsic width larger
+   than the message box. */
+.console-shell--immersive .message,
+.console-shell--immersive .message * {
+  min-width: 0;
+}
+
+.console-shell--immersive .message p,
+.console-shell--immersive .message-markdown,
+.console-shell--immersive .message-markdown p,
+.console-shell--immersive .message-markdown li,
+.console-shell--immersive .message-markdown code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.console-shell--immersive .composer {
+  width: auto;
+  max-width: calc(100% - 24px);
+  margin-left: 12px;
+  margin-right: 12px;
+  box-sizing: border-box;
+}
+
+/* Header actions must shrink/wrap before they can push the main track. */
+.console-shell--immersive .console-header {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.console-shell--immersive .console-header__actions {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+/* Use available space rather than a physical-pixel assumption. */
+@media (max-width: 1280px) {
+  .console-shell--immersive .console-header__actions .ghost-link {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .console-shell--immersive {
+    padding-right: 0;
+  }
+
+  .console-shell--immersive .composer {
+    max-width: calc(100% - 16px);
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
+  .console-shell--immersive .message {
+    max-width: 100%;
+  }
+}
