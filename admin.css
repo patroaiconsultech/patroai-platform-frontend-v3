@@ -360,3 +360,106 @@
     font-size: clamp(30px, 10vw, 38px);
   }
 }
+
+
+/* ORKIO Admin Control Center — CP3-B
+   Contract-driven operational controls only. */
+.admin-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.admin-voice-bind code,
+.admin-governance-note code {
+  color: var(--admin-blue);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .9em;
+}
+
+.admin-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.admin-action-grid label {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-action-grid label > span {
+  color: var(--admin-muted);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-action-grid input,
+.admin-action-grid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--admin-line);
+  border-radius: 11px;
+  background: rgba(255,255,255,.035);
+  color: var(--admin-text);
+  padding: 9px 11px;
+}
+
+.admin-action-grid select option {
+  background: #07110f;
+  color: var(--admin-text);
+}
+
+.admin-action-preview {
+  display: grid;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 13px 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: rgba(118,207,255,.025);
+}
+
+.admin-action-preview > span {
+  color: var(--admin-gold);
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.admin-action-preview > small {
+  color: var(--admin-muted);
+  overflow-wrap: anywhere;
+}
+
+.admin-action-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.admin-action-footer > small {
+  color: var(--admin-muted);
+  line-height: 1.45;
+}
+
+.admin-action-notice {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: rgba(120,231,200,.04);
+  color: var(--admin-text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .admin-action-grid {
+    grid-template-columns: 1fr;
+  }
+}

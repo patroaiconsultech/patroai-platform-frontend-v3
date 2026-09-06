@@ -839,3 +839,182 @@
     inset: -12px -8px calc(-1 * max(8px, env(safe-area-inset-bottom)));
   }
 }
+
+
+/* ORKIO UX Foundation — CP3-A viewport framing correction
+   Fixes CP2's oversized 248 + 960 + 304 desktop grid. The shell stays fluid;
+   only the conversation's inner reading surface is bounded. */
+.console-shell--immersive,
+.console-shell--immersive .console-main,
+.console-shell--immersive .console-header,
+.console-shell--immersive .console-header > *,
+.console-shell--immersive .console-header__actions,
+.console-shell--immersive .thread-viewport,
+.console-shell--immersive .thread,
+.console-shell--immersive .composer,
+.console-shell--immersive .composer > * {
+  min-width: 0;
+}
+
+.console-shell--immersive {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+@media (min-width: 1180px) {
+  .console-shell--immersive {
+    grid-template-columns: 248px minmax(0, 1fr) 304px;
+    justify-content: stretch;
+  }
+}
+
+.console-shell--immersive .console-main {
+  width: 100%;
+  max-width: 100%;
+}
+
+.console-shell--immersive .console-header {
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-content: center;
+}
+
+.console-shell--immersive .console-header > :first-child {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.console-shell--immersive .console-header__actions {
+  flex: 0 1 auto;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.console-shell--immersive .thread {
+  width: 100%;
+  max-width: 100%;
+  padding-left: clamp(18px, 3vw, 42px);
+  padding-right: clamp(18px, 3vw, 42px);
+}
+
+.console-shell--immersive .message {
+  width: fit-content;
+  max-width: min(var(--console-reading-max), 100%);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.console-shell--immersive .message pre,
+.console-shell--immersive .message code {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.console-shell--immersive .composer {
+  position: sticky;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  max-width: none;
+  margin-left: 12px;
+  margin-right: 12px;
+  margin-bottom: 12px;
+}
+
+.console-shell--immersive .composer textarea {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 1180px) and (max-width: 1519px) {
+  .console-shell--immersive {
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+
+  .immersive-presence {
+    display: none;
+  }
+
+  .immersive-presence[data-realtime-active="true"] {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 70;
+    display: block;
+    width: min(280px, calc(100vw - 24px));
+    min-height: 0;
+    margin: 0;
+    padding: 8px;
+    border-radius: 16px;
+    background: rgba(6, 14, 20, .96);
+    box-shadow: 0 18px 50px rgba(0,0,0,.38), 0 0 34px rgba(55,197,255,.08);
+  }
+
+  .immersive-presence[data-realtime-active="true"] .immersive-presence__header,
+  .immersive-presence[data-realtime-active="true"] .immersive-presence__stage,
+  .immersive-presence[data-realtime-active="true"] .immersive-presence__runtime {
+    display: none;
+  }
+
+  .immersive-presence[data-realtime-active="true"] .presence-mobile-toggle {
+    width: 100%;
+    min-height: 54px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(55,197,255,.08), rgba(125,107,255,.055));
+    color: #edfaff;
+    text-align: left;
+  }
+
+  .console-shell--immersive .console-main {
+    margin-right: 10px;
+  }
+}
+
+@media (max-width: 980px) {
+  .console-shell--immersive .console-header {
+    align-items: flex-start;
+  }
+
+  .console-shell--immersive .console-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .console-shell--immersive .thread {
+    padding-left: clamp(14px, 3vw, 28px);
+    padding-right: clamp(14px, 3vw, 28px);
+  }
+}
+
+@media (max-width: 760px) {
+  .console-shell--immersive {
+    overflow-x: hidden;
+  }
+
+  .console-shell--immersive .console-header {
+    flex-wrap: nowrap;
+  }
+
+  .console-shell--immersive .console-header__actions {
+    width: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .console-shell--immersive .composer {
+    margin-left: 8px;
+    margin-right: 8px;
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
