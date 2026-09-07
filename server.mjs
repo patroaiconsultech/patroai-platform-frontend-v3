@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import http from "node:http";
+import https from "node:https";
 import path from "node:path";
 import {
   collectPublicRuntimeConfig,
@@ -10,6 +11,41 @@ const port = Number(process.env.PORT || 8080);
 const root = path.resolve("dist");
 const collectedRuntimeConfig = collectPublicRuntimeConfig(process.env);
 const runtimeConfigScript = runtimeEnvScript(collectedRuntimeConfig.config);
+
+function resolveApiUpstream(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.username || parsed.password) return null;
+    if (
+      parsed.protocol !== "https:" &&
+      !(
+        parsed.protocol === "http:" &&
+        ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname)
+      )
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+const apiUpstream = resolveApiUpstream(
+  collectedRuntimeConfig.config.VITE_API_BASE_URL,
+);
+const HOP_BY_HOP_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+]);
 
 if (collectedRuntimeConfig.errors.length) {
   console.error(
@@ -129,6 +165,71 @@ function seoHeaders(response, pathname) {
   }
 }
 
+function isApiRequest(pathname) {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
+function proxyApiRequest(request, response) {
+  if (!apiUpstream) {
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.setHeader("Cache-Control", "no-store");
+    response.writeHead(503);
+    response.end(JSON.stringify({ detail: "API_UPSTREAM_NOT_CONFIGURED" }));
+    return;
+  }
+
+  const incoming = new URL(request.url || "/", "http://frontend.invalid");
+  const upstreamBasePath = apiUpstream.pathname.replace(/\/$/, "");
+  const upstreamPath = `${upstreamBasePath}${incoming.pathname}${incoming.search}`;
+
+  const headers = { ...request.headers, host: apiUpstream.host };
+  for (const name of HOP_BY_HOP_HEADERS) {
+    delete headers[name];
+  }
+
+  const transport = apiUpstream.protocol === "https:" ? https : http;
+  const upstreamRequest = transport.request(
+    {
+      protocol: apiUpstream.protocol,
+      hostname: apiUpstream.hostname,
+      port: apiUpstream.port || undefined,
+      method: request.method,
+      path: upstreamPath,
+      headers,
+    },
+    (upstreamResponse) => {
+      for (const [name, value] of Object.entries(upstreamResponse.headers)) {
+        if (value === undefined || HOP_BY_HOP_HEADERS.has(name.toLowerCase())) {
+          continue;
+        }
+        response.setHeader(name, value);
+      }
+      response.writeHead(upstreamResponse.statusCode || 502);
+      upstreamResponse.pipe(response);
+    },
+  );
+
+  upstreamRequest.on("error", (error) => {
+    console.error(
+      `[ORKIO frontend] API proxy failure: ${error?.code || error?.name || "UPSTREAM_ERROR"}`,
+    );
+    if (!response.headersSent) {
+      response.setHeader("Content-Type", "application/json; charset=utf-8");
+      response.setHeader("Cache-Control", "no-store");
+      response.writeHead(502);
+      response.end(JSON.stringify({ detail: "API_UPSTREAM_UNAVAILABLE" }));
+      return;
+    }
+    response.destroy(error);
+  });
+
+  request.on("aborted", () => upstreamRequest.destroy());
+  response.on("close", () => {
+    if (!response.writableEnded) upstreamRequest.destroy();
+  });
+  request.pipe(upstreamRequest);
+}
+
 http
   .createServer((request, response) => {
     securityHeaders(response);
@@ -140,6 +241,11 @@ http
     }
 
     seoHeaders(response, pathname);
+
+    if (isApiRequest(pathname)) {
+      proxyApiRequest(request, response);
+      return;
+    }
 
     if (pathname === "/env.js") {
       response.setHeader("Content-Type", "text/javascript; charset=utf-8");

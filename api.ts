@@ -1,6 +1,24 @@
 import { publicEnv } from "./config/runtime";
 
-const BASE = publicEnv("VITE_API_BASE_URL").replace(/\/$/, "");
+const CONFIGURED_API_BASE = publicEnv("VITE_API_BASE_URL").replace(/\/$/, "");
+
+function deployedBrowserApiBase(configuredBase: string): string {
+  if (!configuredBase) return "";
+  if (typeof window === "undefined") return configuredBase;
+  const localHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
+  if (
+    window.location.protocol === "https:" &&
+    !localHostnames.has(window.location.hostname)
+  ) {
+    // Deployed web/mobile/PWA traffic goes through the frontend same-origin
+    // gateway. This keeps HttpOnly session + CSRF cookies first-party even when
+    // the Railway backend has a different *.up.railway.app hostname.
+    return window.location.origin.replace(/\/$/, "");
+  }
+  return configuredBase;
+}
+
+const BASE = deployedBrowserApiBase(CONFIGURED_API_BASE);
 
 export const TOKEN_STORAGE_KEY = "orkio_access_token";
 export const TOKEN_EXPIRY_STORAGE_KEY = "orkio_access_token_expires_at";
@@ -1168,7 +1186,10 @@ export async function streamMessage(
         else if (event === "done") finish(payload);
       }
     }
-    finish({ status: "closed" });
+    if (!terminated) {
+      handlers.onError?.("STREAM_TERMINATED_WITHOUT_DONE");
+      finish({ status: "failed", code: "STREAM_TERMINATED_WITHOUT_DONE" });
+    }
   } catch (error) {
     if ((error as Error)?.name === "AbortError") {
       finish({ status: "aborted" });
@@ -1560,35 +1581,6 @@ export async function getMe(): Promise<HyperCocreatorMe> {
 
 export async function getAdminOverview(): Promise<AdminOverview> {
   return apiJson<AdminOverview>("/api/v2/admin/overview");
-}
-
-
-export type RuntimeHealth = {
-  status: string;
-  release: string;
-  sha: string;
-  environment: string;
-};
-
-export type RuntimeReadiness = {
-  status: string;
-  checks: {
-    database_connect?: boolean;
-    schema_complete?: boolean;
-    migration_head?: string;
-    migration_expected?: string;
-    migration_current?: boolean;
-    driver?: string;
-    [key: string]: unknown;
-  };
-};
-
-export async function getRuntimeHealth(): Promise<RuntimeHealth> {
-  return apiJson<RuntimeHealth>("/api/v2/health");
-}
-
-export async function getRuntimeReadiness(): Promise<RuntimeReadiness> {
-  return apiJson<RuntimeReadiness>("/api/v2/ready");
 }
 
 export type AdminUser = {
