@@ -45,7 +45,7 @@ test("401 still reaches terminal auth-required handling", () => {
 test("stream configuration failure still reaches terminal finally", () => {
   const start = api.indexOf("export async function streamMessage");
   const stream = api.slice(start);
-  assert.ok(stream.indexOf("try {") < stream.indexOf("ensureConfigured();"));
+  assert.ok(stream.indexOf("try {") < stream.indexOf("await ensureCsrfToken();"));
   assert.match(stream, /finally \{\s*finish\(\{ status: "closed" \}\);/);
 });
 

@@ -46,7 +46,7 @@ test("ArtifactCard renders filename type status and integrity", () => {
 
 test("download is authenticated with Authorization header and never token in URL", () => {
   assert.match(api, /const headers = authHeaders\(\{ Accept: artifact\.mime_type \}\)/);
-  assert.match(api, /fetch\(`\$\{BASE\}\$\{artifact\.download_path\}`/);
+  assert.match(api, /fetch\(apiUrl\(artifact\.download_path\)/);
   assert.match(api, /headers,/);
   assert.doesNotMatch(api, /download_path.*token|token.*download_path/i);
   assert.doesNotMatch(api, /[?&](?:token|access_token)=/i);

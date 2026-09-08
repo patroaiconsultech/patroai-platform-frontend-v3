@@ -50,9 +50,13 @@ test("session token helpers are inert under HttpOnly cookie auth", () => {
   assert.match(api, /credentials: "include"/);
 });
 
-test("missing api base url is reported explicitly", () => {
-  assert.match(api, /API_BASE_URL_NOT_CONFIGURED/);
+test("browser API base is always the same-origin gateway", () => {
+  assert.match(api, /const API_PREFIX = "\/api"/);
+  assert.match(api, /function apiUrl\(path: string\)/);
   assert.match(api, /export function isApiBaseConfigured/);
+  assert.match(api, /return true;/);
+  assert.doesNotMatch(api, /VITE_API_BASE_URL/);
+  assert.doesNotMatch(api, /API_BASE_URL_NOT_CONFIGURED/);
 });
 
 test("stream parses status, chunk, error and done", () => {

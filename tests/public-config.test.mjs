@@ -6,30 +6,13 @@ import {
   validatePublicConfigValue,
 } from "../public-config.js";
 
-test("valid HTTPS URL passes and insecure remote HTTP fails", () => {
-  assert.deepEqual(
-    validatePublicConfigValue("VITE_API_BASE_URL", "https://api.example.test"),
-    { ok: true, value: "https://api.example.test" },
-  );
-  assert.equal(
-    validatePublicConfigValue("VITE_API_BASE_URL", "http://api.example.test").ok,
-    false,
-  );
-  assert.equal(
-    validatePublicConfigValue("VITE_API_BASE_URL", "http://localhost:8000").ok,
-    true,
-  );
-});
-
-test("URL credentials and malformed URLs fail closed", () => {
-  assert.equal(
-    validatePublicConfigValue("VITE_API_BASE_URL", "https://user:pass@example.test/api").ok,
-    false,
-  );
-  assert.equal(
-    validatePublicConfigValue("VITE_API_BASE_URL", "not-a-url").ok,
-    false,
-  );
+test("backend upstream URL is not a public runtime configuration key", () => {
+  for (const key of ["VITE_API_BASE_URL", "ORKIO_API_UPSTREAM_URL"]) {
+    assert.deepEqual(
+      validatePublicConfigValue(key, "https://api.example.test"),
+      { ok: false, value: "", reason: "KEY_NOT_ALLOWLISTED" },
+    );
+  }
 });
 
 test("timeout must be a positive safe integer", () => {
@@ -48,31 +31,31 @@ test("unknown public keys fail closed", () => {
   );
 });
 
-test("runtime wins when present, build is fallback only when runtime is absent", () => {
+test("runtime wins for the remaining public timeout setting", () => {
   const runtimeWins = resolvePublicConfigValue(
-    "VITE_API_BASE_URL",
-    { VITE_API_BASE_URL: "https://runtime.example.test" },
-    { VITE_API_BASE_URL: "https://build.example.test" },
+    "VITE_STREAM_TIMEOUT_MS",
+    { VITE_STREAM_TIMEOUT_MS: "30000" },
+    { VITE_STREAM_TIMEOUT_MS: "60000" },
   );
   assert.equal(runtimeWins.ok, true);
   assert.equal(runtimeWins.source, "runtime");
-  assert.equal(runtimeWins.value, "https://runtime.example.test");
+  assert.equal(runtimeWins.value, "30000");
 
   const buildFallback = resolvePublicConfigValue(
-    "VITE_API_BASE_URL",
+    "VITE_STREAM_TIMEOUT_MS",
     {},
-    { VITE_API_BASE_URL: "https://build.example.test" },
+    { VITE_STREAM_TIMEOUT_MS: "60000" },
   );
   assert.equal(buildFallback.ok, true);
   assert.equal(buildFallback.source, "build");
-  assert.equal(buildFallback.value, "https://build.example.test");
+  assert.equal(buildFallback.value, "60000");
 });
 
-test("invalid runtime value fails closed and never revives stale valid build fallback", () => {
+test("invalid runtime timeout fails closed and never revives build fallback", () => {
   const resolved = resolvePublicConfigValue(
-    "VITE_API_BASE_URL",
-    { VITE_API_BASE_URL: "http://remote.example.test" },
-    { VITE_API_BASE_URL: "https://old-build.example.test" },
+    "VITE_STREAM_TIMEOUT_MS",
+    { VITE_STREAM_TIMEOUT_MS: "-1" },
+    { VITE_STREAM_TIMEOUT_MS: "60000" },
   );
   assert.equal(resolved.source, "runtime");
   assert.equal(resolved.ok, false);
@@ -90,16 +73,15 @@ test("explicit empty optional runtime timeout overrides build fallback", () => {
   assert.equal(resolved.value, "");
 });
 
-test("runtime collector serializes only allowlisted keys and neutralizes invalid public values", () => {
+test("runtime collector serializes only timeout and never upstream URLs or secrets", () => {
   const { config, errors } = collectPublicRuntimeConfig({
-    VITE_API_BASE_URL: "http://remote.example.test",
+    VITE_API_BASE_URL: "https://legacy-api.example.test",
+    ORKIO_API_UPSTREAM_URL: "https://private-api.example.test",
     VITE_STREAM_TIMEOUT_MS: "300000",
     VITE_OIDC_CLIENT_ID: "client-123",
     OPENAI_API_KEY: "must-not-leak",
   });
-  assert.deepEqual(Object.keys(config).sort(), ["VITE_API_BASE_URL", "VITE_STREAM_TIMEOUT_MS"].sort());
-  assert.equal(config.VITE_API_BASE_URL, "");
+  assert.deepEqual(Object.keys(config), ["VITE_STREAM_TIMEOUT_MS"]);
   assert.equal(config.VITE_STREAM_TIMEOUT_MS, "300000");
-  assert.equal(errors.length, 1);
-  assert.equal(errors[0].key, "VITE_API_BASE_URL");
+  assert.equal(errors.length, 0);
 });

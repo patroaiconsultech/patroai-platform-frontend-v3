@@ -51,7 +51,8 @@ test("GET /env.js exposes only allowlisted public keys under contaminated enviro
       HOME: process.env.HOME || "",
       NODE_ENV: "test",
       PORT: String(port),
-      VITE_API_BASE_URL: "https://api.example.test",
+      VITE_API_BASE_URL: "https://legacy-api.example.test",
+      ORKIO_API_UPSTREAM_URL: "https://private-api.example.test",
       VITE_STREAM_TIMEOUT_MS: "300000",
       ...syntheticSecrets,
     },
@@ -70,10 +71,13 @@ test("GET /env.js exposes only allowlisted public keys under contaminated enviro
   const parsed = parseRuntimeEnv(body);
   assert.deepEqual(
     Object.keys(parsed).sort(),
-    ["VITE_API_BASE_URL", "VITE_STREAM_TIMEOUT_MS"].sort(),
+    ["VITE_STREAM_TIMEOUT_MS"],
   );
-  assert.equal(parsed.VITE_API_BASE_URL, "https://api.example.test");
   assert.equal(parsed.VITE_STREAM_TIMEOUT_MS, "300000");
+  assert.equal(parsed.VITE_API_BASE_URL, undefined);
+  assert.equal(parsed.ORKIO_API_UPSTREAM_URL, undefined);
+  assert.doesNotMatch(body, /legacy-api\.example\.test/);
+  assert.doesNotMatch(body, /private-api\.example\.test/);
 
   for (const [name, value] of Object.entries(syntheticSecrets)) {
     assert.doesNotMatch(body, new RegExp(name));
