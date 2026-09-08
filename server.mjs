@@ -33,9 +33,15 @@ function resolveApiUpstream(raw) {
   }
 }
 
-const apiUpstream = resolveApiUpstream(
-  collectedRuntimeConfig.config.VITE_API_BASE_URL,
-);
+const configuredApiUpstream =
+  process.env.ORKIO_API_UPSTREAM_URL || process.env.VITE_API_BASE_URL || "";
+const apiUpstream = resolveApiUpstream(configuredApiUpstream);
+
+if (!process.env.ORKIO_API_UPSTREAM_URL && process.env.VITE_API_BASE_URL) {
+  console.warn(
+    "[ORKIO frontend] VITE_API_BASE_URL is deprecated as a server upstream; configure ORKIO_API_UPSTREAM_URL.",
+  );
+}
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
   "keep-alive",

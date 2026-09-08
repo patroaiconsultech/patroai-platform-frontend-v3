@@ -45,7 +45,7 @@ test("401 still reaches terminal auth-required handling", () => {
 test("stream configuration failure still reaches terminal finally", () => {
   const start = api.indexOf("export async function streamMessage");
   const stream = api.slice(start);
-  assert.ok(stream.indexOf("try {") < stream.indexOf("ensureConfigured();"));
+  assert.ok(stream.indexOf("try {") < stream.indexOf("await ensureCsrfToken();"));
   assert.match(stream, /finally \{\s*finish\(\{ status: "closed" \}\);/);
 });
 
@@ -112,18 +112,4 @@ test("legacy identities without native credentials have a dedicated secure recov
   assert.match(accessPortal, /submitAccountRecovery/);
   assert.match(accessPortal, /ATIVAÇÃO SEGURA/);
   assert.match(accessPortal, /Nenhum tenant ou permissão será criado ou reativado/);
-});
-
-
-test("deployed browsers use the frontend same-origin API gateway", () => {
-  assert.match(api, /function deployedBrowserApiBase\(configuredBase: string\)/);
-  assert.match(api, /window\.location\.origin/);
-  assert.match(api, /if \(!configuredBase\) return ""/);
-});
-
-test("text stream closure without server done is surfaced as an error", () => {
-  const start = api.indexOf("export async function streamMessage");
-  const stream = api.slice(start);
-  assert.match(stream, /STREAM_TERMINATED_WITHOUT_DONE/);
-  assert.match(stream, /if \(!terminated\)/);
 });

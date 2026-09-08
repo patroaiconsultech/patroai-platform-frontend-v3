@@ -1,13 +1,8 @@
 export const PUBLIC_CONFIG_KEYS = Object.freeze([
-  "VITE_API_BASE_URL",
   "VITE_STREAM_TIMEOUT_MS",
 ]);
 
 const PUBLIC_CONFIG_KEY_SET = new Set(PUBLIC_CONFIG_KEYS);
-
-const URL_KEYS = new Set([
-  "VITE_API_BASE_URL",
-]);
 
 function own(object, key) {
   return Object.prototype.hasOwnProperty.call(object || {}, key);
@@ -15,27 +10,6 @@ function own(object, key) {
 
 function clean(raw) {
   return String(raw ?? "").trim();
-}
-
-function localDevelopmentHost(hostname) {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
-}
-
-function validWebUrl(value) {
-  if (!value) return { ok: true, value: "" };
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return { ok: false, value: "", reason: "URL_INVALID" };
-  }
-  if (parsed.username || parsed.password) {
-    return { ok: false, value: "", reason: "URL_CREDENTIALS_FORBIDDEN" };
-  }
-  if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && localDevelopmentHost(parsed.hostname))) {
-    return { ok: false, value: "", reason: "HTTPS_REQUIRED" };
-  }
-  return { ok: true, value };
 }
 
 function validTimeout(value) {
@@ -53,7 +27,6 @@ export function validatePublicConfigValue(key, raw) {
     return { ok: false, value: "", reason: "KEY_NOT_ALLOWLISTED" };
   }
   const value = clean(raw);
-  if (URL_KEYS.has(key)) return validWebUrl(value);
   if (key === "VITE_STREAM_TIMEOUT_MS") return validTimeout(value);
   return { ok: false, value: "", reason: "VALIDATOR_MISSING" };
 }
@@ -74,8 +47,6 @@ export function collectPublicRuntimeConfig(env = {}) {
     if (validated.ok) {
       config[key] = validated.value;
     } else {
-      // Presence is intentional: invalid runtime config must fail closed,
-      // not silently revive a stale build-time fallback.
       config[key] = "";
       errors.push({ key, reason: validated.reason });
     }

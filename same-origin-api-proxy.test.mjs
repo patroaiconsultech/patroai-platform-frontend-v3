@@ -86,7 +86,7 @@ test("frontend gateway proxies API cookies, CSRF headers, and response cookies w
       HOME: process.env.HOME || "",
       NODE_ENV: "test",
       PORT: String(frontendPort),
-      VITE_API_BASE_URL: `http://127.0.0.1:${upstreamPort}`,
+      ORKIO_API_UPSTREAM_URL: `http://127.0.0.1:${upstreamPort}`,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
