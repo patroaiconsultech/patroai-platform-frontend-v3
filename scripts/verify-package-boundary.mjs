@@ -3,6 +3,8 @@ import { relative, resolve } from "node:path";
 
 const root = process.cwd();
 const forbidden = [
+  "api.ts",
+  "same-origin-api-proxy.test.mjs",
   "005_legacy_claim_on_demand.py",
   "alembic.ini",
   "conftest.py",

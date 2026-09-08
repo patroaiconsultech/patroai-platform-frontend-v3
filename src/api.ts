@@ -1,6 +1,11 @@
-import { publicEnv } from "./config/runtime";
+const API_PREFIX = "/api";
 
-const BASE = publicEnv("VITE_API_BASE_URL").replace(/\/$/, "");
+function apiUrl(path: string): string {
+  if (path !== API_PREFIX && !path.startsWith(`${API_PREFIX}/`)) {
+    throw new ApiError(0, "API_PATH_INVALID", "A API do navegador aceita somente caminhos same-origin /api.");
+  }
+  return path;
+}
 
 export const TOKEN_STORAGE_KEY = "orkio_access_token";
 export const TOKEN_EXPIRY_STORAGE_KEY = "orkio_access_token_expires_at";
@@ -21,7 +26,7 @@ export class ApiError extends Error {
 }
 
 export function isApiBaseConfigured(): boolean {
-  return BASE.length > 0;
+  return true;
 }
 
 export function getToken(): string | null {
@@ -78,18 +83,9 @@ async function readError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, String(code).slice(0, 200));
 }
 
-function ensureConfigured(): void {
-  if (!BASE)
-    throw new ApiError(
-      0,
-      "API_BASE_URL_NOT_CONFIGURED",
-      "VITE_API_BASE_URL não está configurada nesta implantação.",
-    );
-}
-
 async function ensureCsrfToken(): Promise<void> {
   if (csrfToken) return;
-  const response = await fetch(`${BASE}/api/v2/auth/bootstrap-status`, {
+  const response = await fetch(apiUrl("/api/v2/auth/bootstrap-status"), {
     method: "GET",
     credentials: "include",
   });
@@ -101,14 +97,13 @@ export async function apiJson<T = unknown>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  ensureConfigured();
   const headers = authHeaders(init.headers);
   const method = (init.method || "GET").toUpperCase();
   if (!["GET", "HEAD", "OPTIONS"].includes(method)) await ensureCsrfToken();
   applyCsrfHeader(headers, method);
   if (init.body !== undefined && init.body !== null)
     headers.set("Content-Type", "application/json");
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers,
     credentials: "include",
@@ -132,13 +127,12 @@ export async function apiForm<T = unknown>(
   form: FormData,
   init: RequestInit = {},
 ): Promise<T> {
-  ensureConfigured();
   const headers = authHeaders(init.headers);
   const method = (init.method || "POST").toUpperCase();
   if (!["GET", "HEAD", "OPTIONS"].includes(method)) await ensureCsrfToken();
   applyCsrfHeader(headers, method);
   headers.delete("Content-Type");
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     method,
     body: form,
@@ -673,7 +667,6 @@ export async function messageVoice(
   locale: "pt-BR" | "en-US" | "es-419" = "pt-BR",
   signal?: AbortSignal,
 ): Promise<MessageVoiceResult> {
-  ensureConfigured();
   await ensureCsrfToken();
   const headers = authHeaders();
   applyCsrfHeader(headers, "POST");
@@ -685,7 +678,7 @@ export async function messageVoice(
       : `tts-${Date.now()}`,
   );
   const response = await fetch(
-    `${BASE}/api/v2/threads/${encodeURIComponent(threadId)}/messages/${encodeURIComponent(messageId)}/voice`,
+    apiUrl(`/api/v2/threads/${encodeURIComponent(threadId)}/messages/${encodeURIComponent(messageId)}/voice`),
     {
       method: "POST",
       headers,
@@ -818,14 +811,13 @@ export async function streamRealtimeTurn(
   signal?: AbortSignal,
 ): Promise<RealtimeStreamResult> {
   try {
-    ensureConfigured();
     await ensureCsrfToken();
     const headers = authHeaders();
     applyCsrfHeader(headers, "POST");
     headers.set("Content-Type", "application/json");
     headers.set("Accept", "text/event-stream");
     const response = await fetch(
-      `${BASE}/api/v2/threads/${encodeURIComponent(threadId)}/realtime/turns/stream`,
+      apiUrl(`/api/v2/threads/${encodeURIComponent(threadId)}/realtime/turns/stream`),
       {
         method: "POST",
         headers,
@@ -1031,7 +1023,6 @@ export function parseArtifactMetadata(
  * O caminho vem de metadata terminal validada e nunca aceita URL externa.
  */
 export async function downloadArtifact(artifact: ArtifactMetadata): Promise<void> {
-  ensureConfigured();
   if (
     artifact.download_path !==
     canonicalArtifactDownloadPath(artifact.artifact_id)
@@ -1039,7 +1030,7 @@ export async function downloadArtifact(artifact: ArtifactMetadata): Promise<void
     throw new ApiError(0, "ARTIFACT_DOWNLOAD_PATH_INVALID");
 
   const headers = authHeaders({ Accept: artifact.mime_type });
-  const response = await fetch(`${BASE}${artifact.download_path}`, {
+  const response = await fetch(apiUrl(artifact.download_path), {
     method: "GET",
     headers,
     cache: "no-store",
@@ -1103,14 +1094,13 @@ export async function streamMessage(
   };
 
   try {
-    ensureConfigured();
     await ensureCsrfToken();
     const headers = authHeaders();
     applyCsrfHeader(headers, "POST");
     headers.set("Content-Type", "application/json");
     headers.set("Accept", "text/event-stream");
     const response = await fetch(
-      `${BASE}/api/v2/threads/${encodeURIComponent(threadId)}/stream`,
+      apiUrl(`/api/v2/threads/${encodeURIComponent(threadId)}/stream`),
       {
         method: "POST",
         headers,
@@ -1205,14 +1195,13 @@ export async function streamTeamMessage(
   };
 
   try {
-    ensureConfigured();
     await ensureCsrfToken();
     const headers = authHeaders();
     applyCsrfHeader(headers, "POST");
     headers.set("Content-Type", "application/json");
     headers.set("Accept", "text/event-stream");
     const response = await fetch(
-      `${BASE}/api/v2/threads/${encodeURIComponent(threadId)}/team/stream`,
+      apiUrl(`/api/v2/threads/${encodeURIComponent(threadId)}/team/stream`),
       {
         method: "POST",
         headers,
